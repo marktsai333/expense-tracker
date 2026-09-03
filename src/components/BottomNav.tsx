@@ -54,10 +54,22 @@ export function BottomNav() {
     >
       <div className="relative flex">
         <motion.div
-          className="absolute top-0 bottom-0 rounded-2xl"
-          style={{ width: `${segmentPct}%`, background: "var(--accent-soft)" }}
-          animate={{ left: `${displayIndex * segmentPct}%` }}
-          transition={dragIndex !== null ? { duration: 0 } : { type: "spring", stiffness: 500, damping: 40 }}
+          className="absolute top-0 bottom-0 rounded-2xl backdrop-blur-md"
+          style={{
+            width: `${segmentPct}%`,
+            background: "var(--accent-soft)",
+            border: "1px solid rgba(255,255,255,0.5)",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.6)",
+          }}
+          animate={{
+            left: `${displayIndex * segmentPct}%`,
+            scale: dragIndex !== null ? 1.06 : 1,
+          }}
+          transition={
+            dragIndex !== null
+              ? { left: { duration: 0 }, scale: { duration: 0.15 } }
+              : { left: { type: "spring", stiffness: 420, damping: 26 }, scale: { type: "spring", stiffness: 400, damping: 18 } }
+          }
         />
         {NAV_ITEMS.map((item, i) => (
           <button
