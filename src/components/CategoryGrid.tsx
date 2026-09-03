@@ -1,4 +1,4 @@
-import { motion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 import type { Category } from "../lib/db";
 
 export function CategoryGrid({
@@ -25,22 +25,38 @@ export function CategoryGrid({
             className="flex flex-col items-center gap-1.5 pt-2.5 pb-2 rounded-2xl text-xs"
             style={{ color: selected ? "var(--text)" : "var(--text-muted)", fontWeight: selected ? 700 : 400 }}
           >
-            <motion.span
-              className="w-12 h-12 rounded-full flex items-center justify-center text-xl"
-              style={{
-                background: `linear-gradient(150deg, ${c.color}30, ${c.color}12)`,
-                border: `1px solid ${c.color}${selected ? "70" : "25"}`,
-              }}
-              animate={{
-                scale: selected ? 1.08 : 1,
-                boxShadow: selected
-                  ? `0 6px 16px ${c.color}50, inset 0 -2px 4px rgba(0,0,0,0.08), inset 0 1.5px 0 rgba(255,255,255,0.65)`
-                  : `inset 0 -2px 3px rgba(0,0,0,0.05), inset 0 1px 0 rgba(255,255,255,0.5)`,
-              }}
-              transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
-            >
-              {c.icon}
-            </motion.span>
+            <div className="relative">
+              <motion.span
+                className="w-12 h-12 rounded-full flex items-center justify-center text-xl"
+                style={{
+                  background: `linear-gradient(150deg, ${c.color}30, ${c.color}12)`,
+                  border: selected ? `2px solid ${c.color}` : `1px solid ${c.color}25`,
+                }}
+                animate={{
+                  scale: selected ? 1.08 : 1,
+                  boxShadow: selected
+                    ? `0 6px 16px ${c.color}55, inset 0 -2px 4px rgba(0,0,0,0.08), inset 0 1.5px 0 rgba(255,255,255,0.65)`
+                    : `inset 0 -2px 3px rgba(0,0,0,0.05), inset 0 1px 0 rgba(255,255,255,0.5)`,
+                }}
+                transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
+              >
+                {c.icon}
+              </motion.span>
+              <AnimatePresence>
+                {selected && (
+                  <motion.div
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0, opacity: 0 }}
+                    transition={{ type: "spring", stiffness: 500, damping: 22 }}
+                    className="absolute -top-0.5 -right-0.5 w-[18px] h-[18px] rounded-full flex items-center justify-center text-white text-[10px] font-bold"
+                    style={{ background: "var(--accent)", border: "2px solid var(--card-bg)" }}
+                  >
+                    ✓
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
             <span>{c.name}</span>
           </motion.button>
         );

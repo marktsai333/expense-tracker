@@ -38,6 +38,8 @@ export function AddEditSheet() {
   const categories = useStore((s) => s.categories);
   const paymentMethods = useStore((s) => s.paymentMethods);
   const transactions = useStore((s) => s.transactions);
+  const showSuggestChips = useStore((s) => s.settings.showSuggestChips);
+  const showPlaceholderExamples = useStore((s) => s.settings.showPlaceholderExamples);
   const settings = useStore((s) => s.settings);
   const sheetOpen = useStore((s) => s.sheetOpen);
   const editingId = useStore((s) => s.editingId);
@@ -154,13 +156,15 @@ export function AddEditSheet() {
           <input
             type="text"
             autoComplete="off"
-            placeholder="例如：Bambu 珍奶"
+            placeholder={showPlaceholderExamples ? "例如 珍奶" : ""}
             value={form.subitem}
             onChange={(e) => setForm((f) => ({ ...f, subitem: e.target.value }))}
             className="w-full rounded-2xl px-3.5 py-3.5 text-base"
             style={inputStyle}
           />
-          <SuggestChips transactions={transactions} categoryId={form.categoryId} query={form.subitem} onPick={pickSuggestion} />
+          {showSuggestChips && (
+            <SuggestChips transactions={transactions} categoryId={form.categoryId} query={form.subitem} onPick={pickSuggestion} />
+          )}
         </div>
 
         <div className="flex gap-2.5 mb-3.5">
@@ -273,7 +277,7 @@ export function AddEditSheet() {
                 </label>
                 <textarea
                   rows={3}
-                  placeholder="自由記錄：好吃嗎？用途是什麼？..."
+                  placeholder={showPlaceholderExamples ? "自由記錄：好吃嗎？用途是什麼？..." : "備註"}
                   value={form.note}
                   onChange={(e) => setForm((f) => ({ ...f, note: e.target.value }))}
                   className="w-full rounded-2xl px-3.5 py-3.5 text-base resize-y"

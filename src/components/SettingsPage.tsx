@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { motion } from "motion/react";
+import { Toggle } from "konsta/react";
 import { toast } from "sonner";
 import { useStore } from "../store/useStore";
 import type { Category, PaymentMethod } from "../lib/db";
@@ -156,6 +157,36 @@ export function SettingsPage() {
               {opt.label}
             </button>
           ))}
+        </div>
+      </div>
+
+      <div className="rounded-[20px] p-4 mb-4" style={cardStyle}>
+        <h2 className="text-[15px] font-bold mb-3">介面顯示</h2>
+        <div className="flex items-center justify-between py-1.5">
+          <div>
+            <div className="text-sm font-medium">快速選取建議</div>
+            <div className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
+              在子項目下方顯示常買項目的快速按鈕
+            </div>
+          </div>
+          <Toggle
+            checked={settings.showSuggestChips}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateSettings({ showSuggestChips: e.target.checked })}
+          />
+        </div>
+        <div className="flex items-center justify-between py-1.5 mt-1" style={{ borderTop: "1px solid var(--border)" }}>
+          <div className="pt-2.5">
+            <div className="text-sm font-medium">輸入範例文字</div>
+            <div className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
+              在輸入框空白時顯示範例提示
+            </div>
+          </div>
+          <div className="pt-2.5">
+            <Toggle
+              checked={settings.showPlaceholderExamples}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateSettings({ showPlaceholderExamples: e.target.checked })}
+            />
+          </div>
         </div>
       </div>
 

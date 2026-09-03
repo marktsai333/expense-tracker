@@ -1,5 +1,6 @@
-export const APP_VERSION = "2.0.0";
+export const APP_VERSION = "2.1.0";
 export const CHANGELOG = [
+  "v2.1.0：底部導覽列/新增按鈕改用 Konsta UI(真 iOS 元件庫)、記帳單支援下滑取消、圓餅圖加上圖例、6個月比較改成趨勢圖、總覽頁可左右滑動切換月份、交易一律顯示日期、設定頁新增介面顯示開關",
   "v2.0.0：整個重寫成 React + 真液態玻璃材質、滑動刪除交易、圖表換成 recharts、部署到 GitHub Pages(真 https)",
   "v1.1.2：修正日期欄位在 iOS 跑版的問題、調整頂部顏色讓狀態列更融合",
   "v1.1.1：頂部顏色延伸到動態島/瀏海後面、修正記帳按鈕被底部導覽列擋住的問題",

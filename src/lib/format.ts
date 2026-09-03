@@ -20,3 +20,8 @@ export function formatDateDisplay(v: string): string {
   const [y, m, d] = v.split("-").map(Number);
   return `${y}年${m}月${d}日`;
 }
+export function formatDateShort(v: string): string {
+  if (!v) return "";
+  const [, m, d] = v.split("-").map(Number);
+  return `${m}/${d}`;
+}

@@ -1,5 +1,5 @@
 import type { Category, PaymentMethod, Transaction } from "../lib/db";
-import { formatMoney } from "../lib/format";
+import { formatMoney, formatDateShort } from "../lib/format";
 
 export function formatItems(items: Transaction["items"]): string {
   if (!items || !items.length) return "";
@@ -20,7 +20,8 @@ export function TxRow({
   payment?: PaymentMethod;
   onClick?: () => void;
 }) {
-  const subtitle = [tx.subitem, payment?.name].filter(Boolean).join(" · ");
+  const contextLabel = tx.subitem ? category.name : undefined;
+  const subtitle = [contextLabel, payment?.name, formatDateShort(tx.date)].filter(Boolean).join(" · ");
   const itemsText = formatItems(tx.items);
   const tipText = tx.tipPercent ? `含 ${tx.tipPercent}% 小費 ${formatMoney(tx.tipAmount)}` : "";
   const extraLines = [itemsText, tipText].filter(Boolean);
@@ -44,7 +45,7 @@ export function TxRow({
       <div className="flex-1 min-w-0">
         <div className="text-[15px] font-semibold truncate">{tx.subitem || category.name}</div>
         <div className="text-xs mt-0.5 truncate" style={{ color: "var(--text-muted)" }}>
-          {subtitle || tx.date}
+          {subtitle}
         </div>
         {extraLines.map((t, i) => (
           <div key={i} className="text-[11px] mt-0.5 opacity-85" style={{ color: "var(--text-muted)" }}>

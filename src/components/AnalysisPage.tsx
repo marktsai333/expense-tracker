@@ -2,13 +2,13 @@ import { useMemo, useState } from "react";
 import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
   XAxis, YAxis, CartesianGrid,
-  BarChart, Bar,
+  AreaChart, Area,
 } from "recharts";
 import { useStore } from "../store/useStore";
 import { byId, filterChartable, getMonthTransactions, sum } from "../lib/selectors";
 import { formatMoney, monthKey } from "../lib/format";
 
-const ACCENT = "#6c5ce8";
+const ACCENT = "#007aff";
 
 export function AnalysisPage() {
   const categories = useStore((s) => s.categories);
@@ -81,6 +81,7 @@ export function AnalysisPage() {
   }, [transactions, year, month, trendCategoryId, categoryById]);
 
   const topList = useMemo(() => [...monthTx].sort((a, b) => b.amount - a.amount).slice(0, 5), [monthTx]);
+  const trendColor = trendCategoryId ? categoryById[Number(trendCategoryId)]?.color ?? ACCENT : ACCENT;
 
   const cardStyle = { background: "var(--card-bg)", boxShadow: "var(--shadow)" };
 
@@ -104,21 +105,33 @@ export function AnalysisPage() {
         {pieData.length === 0 ? (
           <p className="text-sm" style={{ color: "var(--text-muted)" }}>尚無資料</p>
         ) : (
-          <ResponsiveContainer width="100%" height={220}>
-            <PieChart>
-              <Pie data={pieData} dataKey="value" nameKey="name" innerRadius={50} outerRadius={90} paddingAngle={2}>
-                {pieData.map((entry, i) => (
-                  <Cell key={i} fill={entry.fill} />
-                ))}
-              </Pie>
-              <Tooltip formatter={(v: any) => formatMoney(Number(v))} />
-            </PieChart>
-          </ResponsiveContainer>
+          <>
+            <ResponsiveContainer width="100%" height={220}>
+              <PieChart>
+                <Pie data={pieData} dataKey="value" nameKey="name" innerRadius={50} outerRadius={90} paddingAngle={2}>
+                  {pieData.map((entry, i) => (
+                    <Cell key={i} fill={entry.fill} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(v: any) => formatMoney(Number(v))} />
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="flex flex-col gap-2 mt-1">
+              {pieData.map((entry) => (
+                <div key={entry.categoryId} className="flex items-center gap-2 text-sm">
+                  <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: entry.fill }} />
+                  <span className="flex-1 truncate">{entry.name}</span>
+                  <span style={{ color: "var(--text-muted)" }}>{((entry.value / total) * 100).toFixed(0)}%</span>
+                  <span className="font-semibold w-16 text-right">{formatMoney(entry.value)}</span>
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </div>
 
       <div className="rounded-[20px] p-4" style={cardStyle}>
-        <h2 className="text-[15px] font-bold mb-3">近 6 個月類別比較</h2>
+        <h2 className="text-[15px] font-bold mb-3">近 6 個月趨勢</h2>
         <select
           value={trendCategoryId}
           onChange={(e) => setTrendCategoryId(e.target.value)}
@@ -133,13 +146,27 @@ export function AnalysisPage() {
           ))}
         </select>
         <ResponsiveContainer width="100%" height={200}>
-          <BarChart data={barData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-            <XAxis dataKey="label" tick={{ fontSize: 11, fill: "var(--text-muted)" }} />
-            <YAxis tick={{ fontSize: 11, fill: "var(--text-muted)" }} width={36} />
+          <AreaChart data={barData}>
+            <defs>
+              <linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={trendColor} stopOpacity={0.35} />
+                <stop offset="100%" stopColor={trendColor} stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+            <XAxis dataKey="label" tick={{ fontSize: 11, fill: "var(--text-muted)" }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fontSize: 11, fill: "var(--text-muted)" }} width={36} axisLine={false} tickLine={false} />
             <Tooltip formatter={(v: any) => formatMoney(Number(v))} />
-            <Bar dataKey="amount" fill={trendCategoryId ? categoryById[Number(trendCategoryId)]?.color ?? ACCENT : ACCENT} radius={[4, 4, 0, 0]} />
-          </BarChart>
+            <Area
+              type="monotone"
+              dataKey="amount"
+              stroke={trendColor}
+              strokeWidth={2.5}
+              fill="url(#trendFill)"
+              dot={{ r: 3, fill: trendColor, strokeWidth: 0 }}
+              activeDot={{ r: 5 }}
+            />
+          </AreaChart>
         </ResponsiveContainer>
       </div>
 

@@ -1,5 +1,5 @@
-import { useMemo } from "react";
-import { motion } from "motion/react";
+import { useMemo, useState } from "react";
+import { AnimatePresence, motion, type PanInfo } from "motion/react";
 import NumberFlow from "@number-flow/react";
 import { useStore } from "../store/useStore";
 import { byId, filterChartable, getMonthTransactions, sum } from "../lib/selectors";
@@ -12,10 +12,22 @@ export function OverviewPage() {
   const paymentMethods = useStore((s) => s.paymentMethods);
   const transactions = useStore((s) => s.transactions);
   const { year, month } = useStore((s) => s.month);
+  const changeMonth = useStore((s) => s.changeMonth);
   const setPage = useStore((s) => s.setPage);
   const goToListFiltered = useStore((s) => s.goToListFiltered);
   const openEditSheet = useStore((s) => s.openEditSheet);
   const openAddSheet = useStore((s) => s.openAddSheet);
+  const [direction, setDirection] = useState(0);
+
+  function handlePanEnd(_e: PointerEvent | MouseEvent | TouchEvent, info: PanInfo) {
+    if (info.offset.x < -60 || info.velocity.x < -500) {
+      setDirection(1);
+      changeMonth(1);
+    } else if (info.offset.x > 60 || info.velocity.x > 500) {
+      setDirection(-1);
+      changeMonth(-1);
+    }
+  }
 
   const categoryById = useMemo(() => byId(categories), [categories]);
   const paymentById = useMemo(() => byId(paymentMethods), [paymentMethods]);
@@ -60,7 +72,17 @@ export function OverviewPage() {
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <motion.div onPanEnd={handlePanEnd} style={{ touchAction: "pan-y" }}>
+      <AnimatePresence mode="wait" initial={false} custom={direction}>
+        <motion.div
+          key={`${year}-${month}`}
+          custom={direction}
+          initial={{ opacity: 0, x: direction * 24 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: direction * -24 }}
+          transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
+          className="flex flex-col gap-4"
+        >
       <motion.button
         whileTap={{ scale: 0.98 }}
         onClick={() => setPage("analysis")}
@@ -149,6 +171,8 @@ export function OverviewPage() {
           ))}
         </div>
       </div>
-    </div>
+        </motion.div>
+      </AnimatePresence>
+    </motion.div>
   );
 }

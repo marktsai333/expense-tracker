@@ -43,12 +43,16 @@ export interface AppSettings {
   id: "app";
   tipPresets: number[];
   themeOverride: ThemeOverride;
+  showSuggestChips: boolean;
+  showPlaceholderExamples: boolean;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
   id: "app",
   tipPresets: [15, 18, 20, 25],
   themeOverride: "system",
+  showSuggestChips: true,
+  showPlaceholderExamples: true,
 };
 
 interface ExpenseDB extends DBSchema {
@@ -103,7 +107,7 @@ export function getDB() {
 export async function getSettings(): Promise<AppSettings> {
   const db = await getDB();
   const existing = await db.get("settings", "app");
-  if (existing) return existing;
+  if (existing) return { ...DEFAULT_SETTINGS, ...existing };
   await db.put("settings", DEFAULT_SETTINGS);
   return DEFAULT_SETTINGS;
 }
