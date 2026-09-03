@@ -3,9 +3,9 @@ import { motion, type PanInfo } from "motion/react";
 import { useStore, type Page } from "../store/useStore";
 
 const NAV_ITEMS: { page: Page; icon: string; label: string }[] = [
-  { page: "add", icon: "✏️", label: "記帳" },
-  { page: "list", icon: "📋", label: "列表" },
-  { page: "charts", icon: "📊", label: "圖表" },
+  { page: "overview", icon: "🏠", label: "總覽" },
+  { page: "list", icon: "📋", label: "記錄" },
+  { page: "analysis", icon: "📊", label: "分析" },
   { page: "settings", icon: "⚙️", label: "設定" },
 ];
 

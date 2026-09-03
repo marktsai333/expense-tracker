@@ -1,13 +1,13 @@
 import { motion } from "motion/react";
 import { useStore, type Page } from "../store/useStore";
 
-const TITLES: Record<Page, string> = { add: "記帳", list: "列表", charts: "圖表", settings: "設定" };
+const TITLES: Record<Page, string> = { overview: "總覽", list: "記錄", analysis: "分析", settings: "設定" };
 
 export function TopBar() {
   const page = useStore((s) => s.page);
   const { year, month } = useStore((s) => s.month);
   const changeMonth = useStore((s) => s.changeMonth);
-  const showMonthSwitch = page !== "add";
+  const showMonthSwitch = page !== "settings";
 
   return (
     <header

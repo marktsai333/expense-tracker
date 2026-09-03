@@ -37,6 +37,20 @@ export interface Transaction {
 }
 export type NewTransaction = Omit<Transaction, "id">;
 
+export type ThemeOverride = "system" | "light" | "dark";
+
+export interface AppSettings {
+  id: "app";
+  tipPresets: number[];
+  themeOverride: ThemeOverride;
+}
+
+export const DEFAULT_SETTINGS: AppSettings = {
+  id: "app",
+  tipPresets: [15, 18, 20, 25],
+  themeOverride: "system",
+};
+
 interface ExpenseDB extends DBSchema {
   transactions: {
     key: number;
@@ -51,10 +65,14 @@ interface ExpenseDB extends DBSchema {
     key: number;
     value: PaymentMethod;
   };
+  settings: {
+    key: string;
+    value: AppSettings;
+  };
 }
 
 const DB_NAME = "expense-tracker";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 let dbPromise: Promise<IDBPDatabase<ExpenseDB>> | null = null;
 
@@ -73,10 +91,21 @@ export function getDB() {
         if (!db.objectStoreNames.contains("paymentMethods")) {
           db.createObjectStore("paymentMethods", { keyPath: "id", autoIncrement: true });
         }
+        if (!db.objectStoreNames.contains("settings")) {
+          db.createObjectStore("settings", { keyPath: "id" });
+        }
       },
     });
   }
   return dbPromise;
+}
+
+export async function getSettings(): Promise<AppSettings> {
+  const db = await getDB();
+  const existing = await db.get("settings", "app");
+  if (existing) return existing;
+  await db.put("settings", DEFAULT_SETTINGS);
+  return DEFAULT_SETTINGS;
 }
 
 export const DEFAULT_CATEGORIES: NewCategory[] = [

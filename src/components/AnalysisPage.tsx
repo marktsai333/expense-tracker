@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import NumberFlow from "@number-flow/react";
 import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
   LineChart, Line, XAxis, YAxis, CartesianGrid,
@@ -11,9 +10,8 @@ import { formatMoney, daysInMonth, monthKey } from "../lib/format";
 
 const ACCENT = "#17b892";
 
-export function ChartsPage() {
+export function AnalysisPage() {
   const categories = useStore((s) => s.categories);
-  const paymentMethods = useStore((s) => s.paymentMethods);
   const transactions = useStore((s) => s.transactions);
   const { year, month } = useStore((s) => s.month);
   const [trendCategoryId, setTrendCategoryId] = useState("");
@@ -30,10 +28,6 @@ export function ChartsPage() {
     if (m < 1) { m = 12; y -= 1; }
     return filterChartable(getMonthTransactions(transactions, y, m), categoryById);
   }, [transactions, year, month, categoryById]);
-  const lastTotal = sum(lastMonth);
-  const diffPct = lastTotal === 0 ? null : ((total - lastTotal) / lastTotal) * 100;
-
-  const creditCards = paymentMethods.filter((p) => p.isCredit && p.limit);
 
   const pieData = useMemo(() => {
     const sums = new Map<number, number>();
@@ -41,10 +35,36 @@ export function ChartsPage() {
     return Array.from(sums.entries())
       .map(([categoryId, value]) => {
         const cat = categoryById[categoryId];
-        return { name: cat?.name ?? "未分類", value, fill: cat?.color ?? "#999999" };
+        return { categoryId, name: cat?.name ?? "未分類", value, fill: cat?.color ?? "#999999" };
       })
       .sort((a, b) => b.value - a.value);
   }, [monthTx, categoryById]);
+
+  const insight = useMemo(() => {
+    const thisSums = new Map<number, number>();
+    for (const tx of monthTx) thisSums.set(tx.categoryId, (thisSums.get(tx.categoryId) ?? 0) + tx.amount);
+    const lastSums = new Map<number, number>();
+    for (const tx of lastMonth) lastSums.set(tx.categoryId, (lastSums.get(tx.categoryId) ?? 0) + tx.amount);
+
+    let best: { catId: number; pct: number } | null = null;
+    for (const [catId, val] of thisSums) {
+      const prev = lastSums.get(catId) ?? 0;
+      if (prev <= 0) continue;
+      const pct = ((val - prev) / prev) * 100;
+      if (!best || Math.abs(pct) > Math.abs(best.pct)) best = { catId, pct };
+    }
+    if (best && Math.abs(best.pct) >= 10) {
+      const cat = categoryById[best.catId];
+      const verb = best.pct > 0 ? "多花了" : "少花了";
+      return `📈 ${cat?.name ?? "未分類"}比上個月${verb} ${Math.abs(best.pct).toFixed(0)}%`;
+    }
+    if (pieData.length && total > 0) {
+      const topCat = pieData[0];
+      const pct = (topCat.value / total) * 100;
+      return `🏷️ 這個月花最多的是「${topCat.name}」,佔了 ${pct.toFixed(0)}%`;
+    }
+    return null;
+  }, [monthTx, lastMonth, categoryById, pieData, total]);
 
   const lineData = useMemo(() => {
     const nDays = daysInMonth(year, month);
@@ -72,67 +92,24 @@ export function ChartsPage() {
 
   const topList = useMemo(() => [...monthTx].sort((a, b) => b.amount - a.amount).slice(0, 5), [monthTx]);
 
-  return (
-    <div>
-      {/* 摘要卡 */}
-      <div
-        className="rounded-[20px] p-5 mb-4 text-white"
-        style={{ background: "linear-gradient(135deg, var(--accent), var(--accent2))", boxShadow: "var(--shadow-lg)" }}
-      >
-        <span className="text-[13px] opacity-85 block">本月支出</span>
-        <span className="text-[32px] font-extrabold flex items-baseline">
-          $<NumberFlow value={Math.round(total * 100) / 100} />
-        </span>
-        <div className="text-[13px] opacity-90 mt-2">
-          {lastTotal === 0
-            ? total === 0
-              ? "與上月比較 —"
-              : "上月無資料可比較"
-            : `與上月比較 ${diffPct! > 0 ? "+" : ""}${diffPct!.toFixed(1)}%`}
-        </div>
-        {excludedTotal > 0 && (
-          <div className="text-xs opacity-85 mt-2.5 pt-2.5" style={{ borderTop: "1px solid rgba(255,255,255,0.25)" }}>
-            另有固定支出(學費/房租等，不列入下方統計)：{formatMoney(excludedTotal)}
-          </div>
-        )}
-      </div>
+  const cardStyle = { background: "var(--card-bg)", boxShadow: "var(--shadow)" };
 
-      {/* 信用卡額度預警 */}
-      {creditCards.length > 0 && (
-        <div className="rounded-[20px] p-4 mb-4" style={{ background: "var(--card-bg)", boxShadow: "var(--shadow)" }}>
-          <h2 className="text-[15px] font-bold mb-3">💳 信用卡額度預警</h2>
-          {creditCards.map((pm) => {
-            const used = monthTxAll.filter((tx) => tx.paymentId === pm.id).reduce((s, tx) => s + tx.amount, 0);
-            const pct = Math.min(100, (used / (pm.limit as number)) * 100);
-            const level = pct >= 100 ? "var(--danger)" : pct >= 80 ? "var(--warning)" : "var(--accent)";
-            const note = pct >= 100 ? "⚠️ 本月刷卡金額已超過額度！" : pct >= 80 ? "本月刷卡金額已接近額度上限" : "";
-            return (
-              <div key={pm.id} className="mb-4 last:mb-0">
-                <div className="flex justify-between items-baseline text-sm mb-1.5">
-                  <span className="font-semibold">{pm.name}</span>
-                  <span className="text-xs" style={{ color: "var(--text-muted)" }}>
-                    {formatMoney(used)} / {formatMoney(pm.limit)}
-                  </span>
-                </div>
-                <div className="w-full h-2.5 rounded-full overflow-hidden" style={{ background: "var(--input-bg)" }}>
-                  <div
-                    className="h-full rounded-full transition-all duration-300"
-                    style={{ width: `${pct}%`, background: level }}
-                  />
-                </div>
-                {note && (
-                  <div className="text-xs mt-1.5 font-semibold" style={{ color: level }}>
-                    {note}
-                  </div>
-                )}
-              </div>
-            );
-          })}
+  return (
+    <div className="flex flex-col gap-4">
+      {insight && (
+        <div
+          className="rounded-[20px] p-5 text-white"
+          style={{ background: "linear-gradient(135deg, var(--accent), var(--accent2))", boxShadow: "var(--shadow-lg)" }}
+        >
+          <div className="text-[17px] font-bold leading-snug">{insight}</div>
+          <div className="text-[13px] opacity-85 mt-2">
+            本月支出 {formatMoney(total)}
+            {excludedTotal > 0 && ` · 另有固定支出 ${formatMoney(excludedTotal)}`}
+          </div>
         </div>
       )}
 
-      {/* 類別佔比 */}
-      <div className="rounded-[20px] p-4 mb-4" style={{ background: "var(--card-bg)", boxShadow: "var(--shadow)" }}>
+      <div className="rounded-[20px] p-4" style={cardStyle}>
         <h2 className="text-[15px] font-bold mb-3">類別佔比</h2>
         {pieData.length === 0 ? (
           <p className="text-sm" style={{ color: "var(--text-muted)" }}>尚無資料</p>
@@ -150,8 +127,7 @@ export function ChartsPage() {
         )}
       </div>
 
-      {/* 每日支出趨勢 */}
-      <div className="rounded-[20px] p-4 mb-4" style={{ background: "var(--card-bg)", boxShadow: "var(--shadow)" }}>
+      <div className="rounded-[20px] p-4" style={cardStyle}>
         <h2 className="text-[15px] font-bold mb-3">每日支出趨勢</h2>
         <ResponsiveContainer width="100%" height={200}>
           <LineChart data={lineData}>
@@ -164,8 +140,7 @@ export function ChartsPage() {
         </ResponsiveContainer>
       </div>
 
-      {/* 近6個月類別比較 */}
-      <div className="rounded-[20px] p-4 mb-4" style={{ background: "var(--card-bg)", boxShadow: "var(--shadow)" }}>
+      <div className="rounded-[20px] p-4" style={cardStyle}>
         <h2 className="text-[15px] font-bold mb-3">近 6 個月類別比較</h2>
         <select
           value={trendCategoryId}
@@ -191,8 +166,7 @@ export function ChartsPage() {
         </ResponsiveContainer>
       </div>
 
-      {/* 前5大支出 */}
-      <div className="rounded-[20px] p-4" style={{ background: "var(--card-bg)", boxShadow: "var(--shadow)" }}>
+      <div className="rounded-[20px] p-4" style={cardStyle}>
         <h2 className="text-[15px] font-bold mb-3">本月前 5 大支出</h2>
         {topList.length === 0 ? (
           <p className="text-sm" style={{ color: "var(--text-muted)" }}>本月尚無紀錄</p>

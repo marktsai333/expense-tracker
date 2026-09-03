@@ -2,30 +2,44 @@ import { create } from "zustand";
 import {
   getDB,
   ensureDefaults,
+  getSettings,
   type Category,
   type NewCategory,
   type PaymentMethod,
   type NewPaymentMethod,
   type Transaction,
   type NewTransaction,
+  type AppSettings,
+  type ThemeOverride,
 } from "../lib/db";
 
-export type Page = "add" | "list" | "charts" | "settings";
+export type Page = "overview" | "list" | "analysis" | "settings";
 
 interface Store {
   ready: boolean;
   categories: Category[];
   paymentMethods: PaymentMethod[];
   transactions: Transaction[];
+  settings: AppSettings;
   page: Page;
   month: { year: number; month: number }; // month: 1-12
+
+  // 記帳/編輯用的浮動 sheet 狀態(不再是獨立分頁)
+  sheetOpen: boolean;
   editingId: number | null;
+  listFilterCategoryId: number | null;
+  listFilterPaymentId: number | null;
 
   init: () => Promise<void>;
   setPage: (page: Page) => void;
   changeMonth: (delta: number) => void;
-  startEdit: (id: number) => void;
-  cancelEdit: () => void;
+  openAddSheet: () => void;
+  openEditSheet: (id: number) => void;
+  closeSheet: () => void;
+  goToListFiltered: (opts: { categoryId?: number | null; paymentId?: number | null }) => void;
+  clearListFilters: () => void;
+  updateSettings: (patch: Partial<AppSettings>) => Promise<void>;
+  setThemeOverride: (t: ThemeOverride) => Promise<void>;
 
   addTransaction: (tx: NewTransaction) => Promise<number>;
   updateTransaction: (tx: Transaction) => Promise<void>;
@@ -41,6 +55,12 @@ interface Store {
 
   importTransactions: (txs: NewTransaction[]) => Promise<void>;
   clearAllData: () => Promise<void>;
+  restoreBackup: (data: {
+    categories: Category[];
+    paymentMethods: PaymentMethod[];
+    transactions: Transaction[];
+    settings: AppSettings;
+  }) => Promise<void>;
 }
 
 export const useStore = create<Store>((set, get) => ({
@@ -48,24 +68,48 @@ export const useStore = create<Store>((set, get) => ({
   categories: [],
   paymentMethods: [],
   transactions: [],
-  page: "add",
+  settings: { id: "app", tipPresets: [15, 18, 20, 25], themeOverride: "system" },
+  page: "overview",
   month: { year: new Date().getFullYear(), month: new Date().getMonth() + 1 },
+  sheetOpen: false,
   editingId: null,
+  listFilterCategoryId: null,
+  listFilterPaymentId: null,
 
   init: async () => {
     await ensureDefaults();
     const db = await getDB();
-    const [categories, paymentMethods, transactions] = await Promise.all([
+    const [categories, paymentMethods, transactions, settings] = await Promise.all([
       db.getAll("categories"),
       db.getAll("paymentMethods"),
       db.getAll("transactions"),
+      getSettings(),
     ]);
-    set({ categories, paymentMethods, transactions, ready: true });
+    set({ categories, paymentMethods, transactions, settings, ready: true });
   },
 
   setPage: (page) => set({ page }),
-  startEdit: (id) => set({ editingId: id, page: "add" }),
-  cancelEdit: () => set({ editingId: null }),
+  openAddSheet: () => set({ editingId: null, sheetOpen: true }),
+  openEditSheet: (id) => set({ editingId: id, sheetOpen: true }),
+  closeSheet: () => set({ sheetOpen: false, editingId: null }),
+
+  goToListFiltered: ({ categoryId, paymentId }) =>
+    set({
+      page: "list",
+      listFilterCategoryId: categoryId ?? null,
+      listFilterPaymentId: paymentId ?? null,
+    }),
+  clearListFilters: () => set({ listFilterCategoryId: null, listFilterPaymentId: null }),
+
+  updateSettings: async (patch) => {
+    const db = await getDB();
+    const next = { ...get().settings, ...patch };
+    await db.put("settings", next);
+    set({ settings: next });
+  },
+  setThemeOverride: async (t) => {
+    await get().updateSettings({ themeOverride: t });
+  },
 
   changeMonth: (delta) => {
     let { year, month } = get().month;
@@ -149,5 +193,25 @@ export const useStore = create<Store>((set, get) => ({
       db.getAll("paymentMethods"),
     ]);
     set({ categories, paymentMethods, transactions: [] });
+  },
+
+  restoreBackup: async (data) => {
+    const db = await getDB();
+    await Promise.all([
+      db.clear("transactions"),
+      db.clear("categories"),
+      db.clear("paymentMethods"),
+      db.clear("settings"),
+    ]);
+    for (const c of data.categories) await db.put("categories", c);
+    for (const p of data.paymentMethods) await db.put("paymentMethods", p);
+    for (const t of data.transactions) await db.put("transactions", t);
+    await db.put("settings", data.settings);
+    set({
+      categories: data.categories,
+      paymentMethods: data.paymentMethods,
+      transactions: data.transactions,
+      settings: data.settings,
+    });
   },
 }));

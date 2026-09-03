@@ -28,7 +28,7 @@ export function SwipeToDeleteRow({ children, onDelete }: { children: React.React
         drag={removing ? false : "x"}
         dragConstraints={{ left: -120, right: 0 }}
         dragElastic={{ left: 0.15, right: 0 }}
-        style={{ x }}
+        style={{ x, position: "relative" }}
         onDragEnd={handleDragEnd}
       >
         {children}

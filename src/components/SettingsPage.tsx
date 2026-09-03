@@ -13,18 +13,30 @@ import { byId } from "../lib/selectors";
 type CategorySheetState = { open: boolean; category: Category | null };
 type PaymentSheetState = { open: boolean; payment: PaymentMethod | null };
 
+const THEME_OPTIONS: { value: "system" | "light" | "dark"; label: string }[] = [
+  { value: "system", label: "跟隨系統" },
+  { value: "light", label: "淺色" },
+  { value: "dark", label: "深色" },
+];
+
 export function SettingsPage() {
   const categories = useStore((s) => s.categories);
   const paymentMethods = useStore((s) => s.paymentMethods);
   const transactions = useStore((s) => s.transactions);
+  const settings = useStore((s) => s.settings);
   const addCategory = useStore((s) => s.addCategory);
   const addPaymentMethod = useStore((s) => s.addPaymentMethod);
   const importTransactions = useStore((s) => s.importTransactions);
   const clearAllData = useStore((s) => s.clearAllData);
+  const updateSettings = useStore((s) => s.updateSettings);
+  const setThemeOverride = useStore((s) => s.setThemeOverride);
+  const restoreBackup = useStore((s) => s.restoreBackup);
 
   const [catSheet, setCatSheet] = useState<CategorySheetState>({ open: false, category: null });
   const [pmSheet, setPmSheet] = useState<PaymentSheetState>({ open: false, payment: null });
+  const [newTipPct, setNewTipPct] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const backupInputRef = useRef<HTMLInputElement>(null);
 
   const categoryById = byId(categories);
   const paymentById = byId(paymentMethods);
@@ -81,11 +93,102 @@ export function SettingsPage() {
     toast.success("已清除所有資料");
   }
 
+  function addTipPreset() {
+    const pct = parseFloat(newTipPct);
+    if (isNaN(pct) || pct <= 0) return;
+    if (settings.tipPresets.includes(pct)) { setNewTipPct(""); return; }
+    updateSettings({ tipPresets: [...settings.tipPresets, pct].sort((a, b) => a - b) });
+    setNewTipPct("");
+  }
+  function removeTipPreset(pct: number) {
+    updateSettings({ tipPresets: settings.tipPresets.filter((p) => p !== pct) });
+  }
+
+  function handleBackupExport() {
+    const payload = { version: 1, categories, paymentMethods, transactions, settings };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `記帳備份_${todayStr()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  async function handleBackupImport(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const data = JSON.parse(await file.text());
+      if (!Array.isArray(data.categories) || !Array.isArray(data.transactions)) {
+        throw new Error("格式不對");
+      }
+      if (!confirm("還原備份會覆蓋目前手機上所有的類別、付款方式、設定與交易紀錄，確定嗎？")) return;
+      await restoreBackup(data);
+      toast.success("已還原備份");
+    } catch {
+      toast.error("這個檔案看起來不是有效的備份檔");
+    }
+    e.target.value = "";
+  }
+
   const cardStyle = { background: "var(--card-bg)", boxShadow: "var(--shadow)" };
   const rowBorder = { borderBottom: "1px solid var(--border)" };
 
   return (
     <div>
+      <div className="rounded-[20px] p-4 mb-4" style={cardStyle}>
+        <h2 className="text-[15px] font-bold mb-3">外觀</h2>
+        <div className="flex gap-2">
+          {THEME_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => setThemeOverride(opt.value)}
+              className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
+              style={
+                settings.themeOverride === opt.value
+                  ? { background: "var(--accent)", color: "var(--accent-contrast)" }
+                  : { background: "var(--input-bg)", color: "var(--text)" }
+              }
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="rounded-[20px] p-4 mb-4" style={cardStyle}>
+        <h2 className="text-[15px] font-bold mb-3">小費快速預設值</h2>
+        <div className="flex flex-wrap gap-2 mb-3">
+          {settings.tipPresets.map((pct) => (
+            <button
+              key={pct}
+              onClick={() => removeTipPreset(pct)}
+              className="text-sm font-semibold rounded-full px-3 py-1.5 flex items-center gap-1.5"
+              style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
+            >
+              {pct}% <span style={{ color: "var(--danger)" }}>✕</span>
+            </button>
+          ))}
+        </div>
+        <div className="flex gap-2">
+          <input
+            type="number"
+            inputMode="decimal"
+            placeholder="新增百分比，例如 22"
+            value={newTipPct}
+            onChange={(e) => setNewTipPct(e.target.value)}
+            className="flex-1 rounded-xl px-3.5 py-2.5 text-sm"
+            style={{ background: "var(--input-bg)", color: "var(--text)" }}
+          />
+          <motion.button whileTap={{ scale: 0.95 }} onClick={addTipPreset} className="px-4 rounded-xl text-sm font-semibold" style={{ background: "var(--accent)", color: "var(--accent-contrast)" }}>
+            新增
+          </motion.button>
+        </div>
+      </div>
+
       <div className="rounded-[20px] p-4 mb-4" style={cardStyle}>
         <h2 className="text-[15px] font-bold mb-3">類別管理</h2>
         {categories.map((c, i) => (
@@ -145,7 +248,23 @@ export function SettingsPage() {
       </div>
 
       <div className="rounded-[20px] p-4 mb-4" style={cardStyle}>
-        <h2 className="text-[15px] font-bold mb-3">資料備份</h2>
+        <h2 className="text-[15px] font-bold mb-3">完整備份(類別、付款方式、小費預設、交易紀錄)</h2>
+        <motion.button whileTap={{ scale: 0.97 }} onClick={handleBackupExport} className="w-full py-3 rounded-full text-[15px] font-medium mb-2" style={{ border: "1px solid var(--border)", color: "var(--text)" }}>
+          匯出完整備份
+        </motion.button>
+        <motion.button
+          whileTap={{ scale: 0.97 }}
+          onClick={() => backupInputRef.current?.click()}
+          className="w-full py-3 rounded-full text-[15px] font-medium"
+          style={{ border: "1px solid var(--border)", color: "var(--text)" }}
+        >
+          還原完整備份
+        </motion.button>
+        <input ref={backupInputRef} type="file" accept=".json" hidden onChange={handleBackupImport} />
+      </div>
+
+      <div className="rounded-[20px] p-4 mb-4" style={cardStyle}>
+        <h2 className="text-[15px] font-bold mb-3">交易紀錄 CSV</h2>
         <motion.button whileTap={{ scale: 0.97 }} onClick={handleExport} className="w-full py-3 rounded-full text-[15px] font-medium mb-2" style={{ border: "1px solid var(--border)", color: "var(--text)" }}>
           匯出 CSV
         </motion.button>
