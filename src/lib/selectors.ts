@@ -30,3 +30,22 @@ export function categoryOf(tx: Transaction, categoryById: Record<number, Categor
 export function paymentOf(tx: Transaction, paymentById: Record<number, PaymentMethod>): PaymentMethod | undefined {
   return tx.paymentId != null ? paymentById[tx.paymentId] : undefined;
 }
+
+export function computeAccountBalance(pm: PaymentMethod, transactions: Transaction[]): number {
+  const spent = transactions
+    .filter((tx) => tx.paymentId === pm.id && (pm.balanceResetAt == null || tx.date >= new Date(pm.balanceResetAt).toISOString().slice(0, 10)))
+    .reduce((s, tx) => s + tx.amount, 0);
+  if (pm.isCredit) return -spent;
+  return pm.startingBalance - spent;
+}
+
+export function computeNetWorth(paymentMethods: PaymentMethod[], transactions: Transaction[]): { assets: number; liabilities: number; net: number } {
+  let assets = 0;
+  let liabilities = 0;
+  for (const pm of paymentMethods) {
+    const balance = computeAccountBalance(pm, transactions);
+    if (pm.isCredit) liabilities += -balance;
+    else assets += balance;
+  }
+  return { assets, liabilities, net: assets - liabilities };
+}

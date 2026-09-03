@@ -4,18 +4,25 @@ import { Toaster } from "sonner";
 import { KonstaProvider } from "konsta/react";
 import { useStore } from "./store/useStore";
 import { useIsDark } from "./lib/useIsDark";
-import { TopBar } from "./components/TopBar";
 import { BottomNav } from "./components/BottomNav";
 import { FAB } from "./components/FAB";
 import { Splash } from "./components/Splash";
 import { UpdateToast } from "./components/UpdateToast";
 import { AddEditSheet } from "./components/AddEditSheet";
+import { PaymentSheet } from "./components/PaymentSheet";
 import { OverviewPage } from "./components/OverviewPage";
+import { AccountsPage } from "./components/AccountsPage";
 import { ListPage } from "./components/ListPage";
 import { AnalysisPage } from "./components/AnalysisPage";
 import { SettingsPage } from "./components/SettingsPage";
 
-const PAGES = { overview: OverviewPage, list: ListPage, analysis: AnalysisPage, settings: SettingsPage };
+const PAGES = {
+  overview: OverviewPage,
+  accounts: AccountsPage,
+  analysis: AnalysisPage,
+  list: ListPage,
+  settings: SettingsPage,
+};
 
 function App() {
   const ready = useStore((s) => s.ready);
@@ -38,6 +45,11 @@ function App() {
   const showSplash = !ready || !minTimeElapsed;
   const PageComponent = PAGES[page];
   const isDark = useIsDark();
+  const paymentMethods = useStore((s) => s.paymentMethods);
+  const paymentSheetOpen = useStore((s) => s.paymentSheetOpen);
+  const editingPaymentId = useStore((s) => s.editingPaymentId);
+  const closePaymentSheet = useStore((s) => s.closePaymentSheet);
+  const editingPayment = paymentMethods.find((p) => p.id === editingPaymentId) ?? null;
 
   return (
     <KonstaProvider theme="ios" dark={isDark}>
@@ -45,8 +57,7 @@ function App() {
         <Splash visible={showSplash} />
         <UpdateToast />
         <div style={{ paddingBottom: "calc(84px + env(safe-area-inset-bottom))", minHeight: "100vh" }}>
-          <TopBar />
-          <main className="px-4 pt-4 pb-6">
+          <main>
             <AnimatePresence mode="wait">
               <motion.div
                 key={page}
@@ -60,9 +71,10 @@ function App() {
             </AnimatePresence>
           </main>
         </div>
-        <AnimatePresence>{page !== "settings" && <FAB key="fab" />}</AnimatePresence>
+        <AnimatePresence>{page === "list" && <FAB key="fab" />}</AnimatePresence>
         <BottomNav />
         <AddEditSheet />
+        <PaymentSheet open={paymentSheetOpen} payment={editingPayment} onClose={closePaymentSheet} />
         <Toaster
           position="bottom-center"
           offset={110}

@@ -12,7 +12,7 @@ export function daysInMonth(y: number, m: number): number {
   return new Date(y, m, 0).getDate();
 }
 export function formatMoney(n: number | null | undefined): string {
-  const num = Math.round((n ?? 0) * 100) / 100;
+  const num = Math.round((n ?? 0) * 100) / 100 || 0;
   return "$" + num.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 }
 export function formatDateDisplay(v: string): string {

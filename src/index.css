@@ -1,26 +1,33 @@
 @import "tailwindcss";
 @import "konsta/react/theme.css";
 
+@theme {
+  --color-brand-primary: #1a9b9e;
+}
+
 :root {
-  --bg: #f2f2f7;
+  --bg: #eef1f2;
   --card-bg: #ffffff;
-  --text: #000000;
-  --text-muted: #8e8e93;
-  --border: rgba(60, 60, 67, 0.13);
-  --accent: #007aff;
-  --accent2: #007aff;
-  --accent-soft: rgba(0, 122, 255, 0.12);
+  --text: #1c2226;
+  --text-muted: #7a8790;
+  --border: rgba(20, 30, 35, 0.08);
+  --accent: #1a9b9e;
+  --accent2: #f5a623;
+  --accent-soft: rgba(26, 155, 158, 0.1);
+  --accent2-soft: rgba(245, 166, 35, 0.14);
   --accent-contrast: #ffffff;
-  --danger: #ff3b30;
-  --danger-soft: rgba(255, 59, 48, 0.12);
-  --warning: #ff9500;
-  --warning-soft: rgba(255, 149, 0, 0.14);
-  --input-bg: #e9e9ec;
-  --shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 12px 28px rgba(0, 0, 0, 0.12);
-  --glass-bg: rgba(255, 255, 255, 0.72);
-  --glass-bg-strong: rgba(255, 255, 255, 0.88);
-  --glass-border: rgba(255, 255, 255, 0.6);
+  --danger: #e0483f;
+  --danger-soft: rgba(224, 72, 63, 0.1);
+  --success: #22a854;
+  --success-soft: rgba(34, 168, 84, 0.1);
+  --warning: #f5a623;
+  --warning-soft: rgba(245, 166, 35, 0.14);
+  --input-bg: #eef1f2;
+  --shadow: 0 6px 18px rgba(20, 30, 35, 0.06);
+  --shadow-lg: 0 12px 28px rgba(20, 30, 35, 0.1);
+  --glass-bg: rgba(238, 241, 242, 0.75);
+  --glass-bg-strong: rgba(255, 255, 255, 0.9);
+  --glass-border: rgba(20, 30, 35, 0.08);
   --glass-highlight: rgba(255, 255, 255, 1);
   --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-in-out-strong: cubic-bezier(0.77, 0, 0.175, 1);
@@ -28,50 +35,56 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #000000;
-    --card-bg: #1c1c1e;
+    --bg: #12181a;
+    --card-bg: #1a2224;
     --text: #ffffff;
-    --text-muted: #8e8e93;
-    --border: rgba(84, 84, 88, 0.4);
-    --accent: #0a84ff;
-    --accent2: #0a84ff;
-    --accent-soft: rgba(10, 132, 255, 0.18);
+    --text-muted: #8a97a0;
+    --border: #283336;
+    --accent: #2bc4c8;
+    --accent2: #ffb84d;
+    --accent-soft: rgba(43, 196, 200, 0.16);
+    --accent2-soft: rgba(255, 184, 77, 0.16);
     --accent-contrast: #ffffff;
-    --danger: #ff453a;
-    --danger-soft: rgba(255, 69, 58, 0.18);
-    --warning: #ff9f0a;
-    --warning-soft: rgba(255, 159, 10, 0.18);
-    --input-bg: #2c2c2e;
+    --danger: #ff5c52;
+    --danger-soft: rgba(255, 92, 82, 0.16);
+    --success: #34d399;
+    --success-soft: rgba(52, 211, 153, 0.16);
+    --warning: #ffb84d;
+    --warning-soft: rgba(255, 184, 77, 0.16);
+    --input-bg: #1c2226;
     --shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
     --shadow-lg: 0 12px 28px rgba(0, 0, 0, 0.55);
-    --glass-bg: rgba(28, 28, 30, 0.6);
-    --glass-bg-strong: rgba(28, 28, 30, 0.86);
-    --glass-border: rgba(255, 255, 255, 0.1);
-    --glass-highlight: rgba(255, 255, 255, 0.12);
+    --glass-bg: rgba(18, 24, 26, 0.72);
+    --glass-bg-strong: rgba(26, 34, 36, 0.9);
+    --glass-border: #283336;
+    --glass-highlight: rgba(255, 255, 255, 0.06);
   }
 }
 
 :root[data-theme="dark"] {
-  --bg: #000000;
-  --card-bg: #1c1c1e;
+  --bg: #12181a;
+  --card-bg: #1a2224;
   --text: #ffffff;
-  --text-muted: #8e8e93;
-  --border: rgba(84, 84, 88, 0.4);
-  --accent: #0a84ff;
-  --accent2: #0a84ff;
-  --accent-soft: rgba(10, 132, 255, 0.18);
+  --text-muted: #8a97a0;
+  --border: #283336;
+  --accent: #2bc4c8;
+  --accent2: #ffb84d;
+  --accent-soft: rgba(43, 196, 200, 0.16);
+  --accent2-soft: rgba(255, 184, 77, 0.16);
   --accent-contrast: #ffffff;
-  --danger: #ff453a;
-  --danger-soft: rgba(255, 69, 58, 0.18);
-  --warning: #ff9f0a;
-  --warning-soft: rgba(255, 159, 10, 0.18);
-  --input-bg: #2c2c2e;
+  --danger: #ff5c52;
+  --danger-soft: rgba(255, 92, 82, 0.16);
+  --success: #34d399;
+  --success-soft: rgba(52, 211, 153, 0.16);
+  --warning: #ffb84d;
+  --warning-soft: rgba(255, 184, 77, 0.16);
+  --input-bg: #1c2226;
   --shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 12px 28px rgba(0, 0, 0, 0.55);
-  --glass-bg: rgba(28, 28, 30, 0.6);
-  --glass-bg-strong: rgba(28, 28, 30, 0.86);
-  --glass-border: rgba(255, 255, 255, 0.1);
-  --glass-highlight: rgba(255, 255, 255, 0.12);
+  --glass-bg: rgba(18, 24, 26, 0.72);
+  --glass-bg-strong: rgba(26, 34, 36, 0.9);
+  --glass-border: #283336;
+  --glass-highlight: rgba(255, 255, 255, 0.06);
 }
 
 * {
@@ -103,6 +116,17 @@ button {
 .card-surface {
   background: var(--card-bg);
   box-shadow: var(--shadow);
+}
+
+.num {
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.num-lg {
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
 }
 
 @media (prefers-reduced-motion: reduce) {

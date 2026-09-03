@@ -14,7 +14,7 @@ import {
   type ThemeOverride,
 } from "../lib/db";
 
-export type Page = "overview" | "list" | "analysis" | "settings";
+export type Page = "overview" | "accounts" | "analysis" | "list" | "settings";
 
 interface Store {
   ready: boolean;
@@ -31,12 +31,19 @@ interface Store {
   listFilterCategoryId: number | null;
   listFilterPaymentId: number | null;
 
+  overviewView: "assets" | "liabilities";
+  paymentSheetOpen: boolean;
+  editingPaymentId: number | null;
+
   init: () => Promise<void>;
   setPage: (page: Page) => void;
   changeMonth: (delta: number) => void;
   openAddSheet: () => void;
   openEditSheet: (id: number) => void;
   closeSheet: () => void;
+  setOverviewView: (v: "assets" | "liabilities") => void;
+  openPaymentSheet: (p: PaymentMethod | null) => void;
+  closePaymentSheet: () => void;
   goToListFiltered: (opts: { categoryId?: number | null; paymentId?: number | null }) => void;
   clearListFilters: () => void;
   updateSettings: (patch: Partial<AppSettings>) => Promise<void>;
@@ -77,6 +84,10 @@ export const useStore = create<Store>((set, get) => ({
   listFilterCategoryId: null,
   listFilterPaymentId: null,
 
+  overviewView: "assets",
+  paymentSheetOpen: false,
+  editingPaymentId: null,
+
   init: async () => {
     await ensureDefaults();
     const db = await getDB();
@@ -93,6 +104,9 @@ export const useStore = create<Store>((set, get) => ({
   openAddSheet: () => set({ editingId: null, sheetOpen: true }),
   openEditSheet: (id) => set({ editingId: id, sheetOpen: true }),
   closeSheet: () => set({ sheetOpen: false, editingId: null }),
+  setOverviewView: (v) => set({ overviewView: v }),
+  openPaymentSheet: (p) => set({ editingPaymentId: p?.id ?? null, paymentSheetOpen: true }),
+  closePaymentSheet: () => set({ paymentSheetOpen: false, editingPaymentId: null }),
 
   goToListFiltered: ({ categoryId, paymentId }) =>
     set({

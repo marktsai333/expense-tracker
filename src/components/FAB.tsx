@@ -19,6 +19,7 @@ export function FAB() {
         component="button"
         onClick={openAddSheet}
         aria-label="新增紀錄"
+        colors={{ bgIos: "bg-[var(--accent2)]", activeBgIos: "", textIos: "text-white" }}
         icon={<span className="text-[26px] font-light leading-none">+</span>}
       />
     </motion.div>

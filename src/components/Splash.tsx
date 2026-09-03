@@ -6,7 +6,7 @@ export function Splash({ visible }: { visible: boolean }) {
       {visible && (
         <motion.div
           className="fixed inset-0 z-[100] flex flex-col items-center justify-center gap-3.5"
-          style={{ background: "linear-gradient(160deg, var(--accent), var(--accent2))" }}
+          style={{ background: "var(--accent)" }}
           initial={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}

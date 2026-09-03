@@ -21,12 +21,14 @@ export function PaymentSheet({
   const [name, setName] = useState("");
   const [isCredit, setIsCredit] = useState(false);
   const [limit, setLimit] = useState("");
+  const [startingBalance, setStartingBalance] = useState("");
 
   useEffect(() => {
     if (open) {
       setName(payment?.name ?? "");
       setIsCredit(payment?.isCredit ?? false);
       setLimit(payment?.limit != null ? String(payment.limit) : "");
+      setStartingBalance(payment?.startingBalance != null ? String(payment.startingBalance) : "0");
     }
   }, [open, payment]);
 
@@ -36,16 +38,31 @@ export function PaymentSheet({
       return;
     }
     const parsedLimit = parseFloat(limit);
-    const payload = { name: name.trim(), isCredit, limit: isCredit && !isNaN(parsedLimit) ? parsedLimit : null };
+    const parsedStart = parseFloat(startingBalance);
+    const payload = {
+      name: name.trim(),
+      icon: payment?.icon ?? (isCredit ? "💳" : "💰"),
+      isCredit,
+      limit: isCredit && !isNaN(parsedLimit) ? parsedLimit : null,
+      startingBalance: !isNaN(parsedStart) ? parsedStart : 0,
+      balanceResetAt: payment?.balanceResetAt ?? null,
+    };
     if (payment) await updatePaymentMethod({ ...payload, id: payment.id });
     else await addPaymentMethod(payload);
     toast.success("已儲存");
     onClose();
   }
 
+  async function handleMarkPaid() {
+    if (!payment) return;
+    await updatePaymentMethod({ ...payment, balanceResetAt: Date.now() });
+    toast.success("已標記還款,重新計算欠款");
+    onClose();
+  }
+
   async function handleDelete() {
     if (!payment) return;
-    if (!confirm("確定刪除這個付款方式嗎？")) return;
+    if (!confirm("確定刪除這個帳戶嗎？")) return;
     await deletePaymentMethod(payment.id);
     toast.success("已刪除");
     onClose();
@@ -55,33 +72,82 @@ export function PaymentSheet({
   const labelStyle = { color: "var(--text-muted)" };
 
   return (
-    <Sheet open={open} onOpenChange={(o) => !o && onClose()} title={payment ? "編輯付款方式" : "新增付款方式"}>
+    <Sheet open={open} onOpenChange={(o) => !o && onClose()} title={payment ? "編輯帳戶" : "新增帳戶"}>
       <div className="mb-3.5">
         <label className="block text-[13px] font-medium mb-1.5" style={labelStyle}>
           名稱
         </label>
         <input value={name} onChange={(e) => setName(e.target.value)} className="w-full rounded-2xl px-3.5 py-3 text-base" style={inputStyle} />
       </div>
-      <div className="mb-3.5 flex items-center gap-2 text-sm" style={{ color: "var(--text)" }}>
-        <input type="checkbox" id="isCredit" checked={isCredit} onChange={(e) => setIsCredit(e.target.checked)} className="w-[18px] h-[18px]" />
-        <label htmlFor="isCredit">這是信用卡(可設定額度預警)</label>
+
+      <div className="mb-3.5">
+        <label className="block text-[13px] font-medium mb-1.5" style={labelStyle}>
+          類型
+        </label>
+        <div className="flex rounded-full p-1" style={{ background: "var(--input-bg)" }}>
+          {[
+            { v: false, label: "現金帳戶" },
+            { v: true, label: "信用卡" },
+          ].map((opt) => (
+            <button
+              key={String(opt.v)}
+              onClick={() => setIsCredit(opt.v)}
+              className="flex-1 py-2 rounded-full text-sm font-bold"
+              style={
+                isCredit === opt.v
+                  ? { background: "var(--card-bg)", color: "var(--text)", boxShadow: "var(--shadow)" }
+                  : { color: "var(--text-muted)" }
+              }
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
       </div>
-      {isCredit && (
+
+      {isCredit ? (
         <div className="mb-3.5">
           <label className="block text-[13px] font-medium mb-1.5" style={labelStyle}>
-            信用卡額度
+            額度
           </label>
           <input
             type="number"
             inputMode="decimal"
-            placeholder="例如 1000"
+            placeholder="例如 20000"
             value={limit}
             onChange={(e) => setLimit(e.target.value)}
             className="w-full rounded-2xl px-3.5 py-3 text-base"
             style={inputStyle}
           />
         </div>
+      ) : (
+        <div className="mb-3.5">
+          <label className="block text-[13px] font-medium mb-1.5" style={labelStyle}>
+            起始餘額
+          </label>
+          <input
+            type="number"
+            inputMode="decimal"
+            placeholder="例如 10000"
+            value={startingBalance}
+            onChange={(e) => setStartingBalance(e.target.value)}
+            className="w-full rounded-2xl px-3.5 py-3 text-base"
+            style={inputStyle}
+          />
+        </div>
       )}
+
+      {isCredit && payment && (
+        <motion.button
+          whileTap={{ scale: 0.97 }}
+          onClick={handleMarkPaid}
+          className="w-full py-3 rounded-2xl text-[14px] font-bold mb-3.5"
+          style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
+        >
+          標記已還款(重新計算欠款)
+        </motion.button>
+      )}
+
       <div className="flex gap-2 mt-2.5">
         {payment && (
           <motion.button
@@ -105,7 +171,7 @@ export function PaymentSheet({
           whileTap={{ scale: 0.97 }}
           onClick={handleSave}
           className="flex-1 py-3 rounded-full text-[15px] font-bold text-white"
-          style={{ background: "linear-gradient(135deg, var(--accent), var(--accent2))" }}
+          style={{ background: "var(--accent)" }}
         >
           儲存
         </motion.button>

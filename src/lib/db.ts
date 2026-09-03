@@ -12,8 +12,11 @@ export type NewCategory = Omit<Category, "id">;
 export interface PaymentMethod {
   id: number;
   name: string;
+  icon: string;
   isCredit: boolean;
   limit: number | null;
+  startingBalance: number;
+  balanceResetAt: number | null;
 }
 export type NewPaymentMethod = Omit<PaymentMethod, "id">;
 
@@ -124,10 +127,10 @@ export const DEFAULT_CATEGORIES: NewCategory[] = [
 ];
 
 export const DEFAULT_PAYMENT_METHODS: NewPaymentMethod[] = [
-  { name: "信用卡", isCredit: false, limit: null },
-  { name: "簽帳金融卡", isCredit: false, limit: null },
-  { name: "現金", isCredit: false, limit: null },
-  { name: "行動支付", isCredit: false, limit: null },
+  { name: "現金", icon: "💵", isCredit: false, limit: null, startingBalance: 0, balanceResetAt: null },
+  { name: "簽帳金融卡", icon: "💳", isCredit: false, limit: null, startingBalance: 0, balanceResetAt: null },
+  { name: "行動支付", icon: "📱", isCredit: false, limit: null, startingBalance: 0, balanceResetAt: null },
+  { name: "信用卡", icon: "💳", isCredit: true, limit: null, startingBalance: 0, balanceResetAt: null },
 ];
 
 export async function ensureDefaults() {

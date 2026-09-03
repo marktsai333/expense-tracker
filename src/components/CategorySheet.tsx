@@ -110,7 +110,7 @@ export function CategorySheet({
           whileTap={{ scale: 0.97 }}
           onClick={handleSave}
           className="flex-1 py-3 rounded-full text-[15px] font-bold text-white"
-          style={{ background: "linear-gradient(135deg, var(--accent), var(--accent2))" }}
+          style={{ background: "var(--accent)" }}
         >
           儲存
         </motion.button>

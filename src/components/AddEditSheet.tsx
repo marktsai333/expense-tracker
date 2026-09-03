@@ -5,7 +5,7 @@ import { useStore } from "../store/useStore";
 import type { ItemBreakdown, Transaction } from "../lib/db";
 import { todayStr, formatMoney } from "../lib/format";
 import { Sheet } from "./Sheet";
-import { CategoryGrid } from "./CategoryGrid";
+import { CategoryPickerSheet } from "./CategoryPickerSheet";
 import { SuggestChips } from "./SuggestChips";
 import { ItemRows } from "./ItemRows";
 import { DateField } from "./DateField";
@@ -52,6 +52,8 @@ export function AddEditSheet() {
 
   const [form, setForm] = useState<FormState>(() => emptyForm(categories[0]?.id ?? null));
   const [moreOpen, setMoreOpen] = useState(false);
+  const [categoryPickerOpen, setCategoryPickerOpen] = useState(false);
+  const selectedCategory = categories.find((c) => c.id === form.categoryId);
 
   useEffect(() => {
     if (!sheetOpen) return;
@@ -140,13 +142,28 @@ export function AddEditSheet() {
 
         <div className="mb-3.5">
           <label className="block text-[13px] font-medium mb-1.5" style={labelStyle}>
-            類別
+            分類
           </label>
-          <CategoryGrid
-            categories={categories}
-            selectedId={form.categoryId}
-            onSelect={(categoryId) => setForm((f) => ({ ...f, categoryId }))}
-          />
+          <button
+            type="button"
+            onClick={() => setCategoryPickerOpen(true)}
+            className="flex items-center gap-2.5 w-full rounded-2xl px-3.5 py-3"
+            style={inputStyle}
+          >
+            {selectedCategory ? (
+              <>
+                <span
+                  className="w-7 h-7 rounded-full flex items-center justify-center text-[15px] flex-shrink-0"
+                  style={{ background: selectedCategory.color }}
+                >
+                  {selectedCategory.icon}
+                </span>
+                <span className="text-base font-semibold">{selectedCategory.name}</span>
+              </>
+            ) : (
+              <span style={labelStyle}>選擇分類</span>
+            )}
+          </button>
         </div>
 
         <div className="mb-3.5">
@@ -304,15 +321,18 @@ export function AddEditSheet() {
             type="submit"
             whileTap={{ scale: 0.97 }}
             className="flex-1 py-[15px] rounded-full text-base font-bold text-white"
-            style={{
-              background: "linear-gradient(135deg, var(--accent), var(--accent2))",
-              boxShadow: "0 10px 20px rgba(23,184,146,0.28), inset 0 1px 0 rgba(255,255,255,0.35)",
-            }}
+            style={{ background: "var(--accent)" }}
           >
             {editingTx ? "更新紀錄" : "新增紀錄"}
           </motion.button>
         </div>
       </form>
+      <CategoryPickerSheet
+        open={categoryPickerOpen}
+        selectedId={form.categoryId}
+        onSelect={(categoryId) => setForm((f) => ({ ...f, categoryId }))}
+        onClose={() => setCategoryPickerOpen(false)}
+      />
     </Sheet>
   );
 }

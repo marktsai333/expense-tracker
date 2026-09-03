@@ -7,11 +7,13 @@ export function Sheet({
   onOpenChange,
   title,
   children,
+  zIndex = 30,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   title: string;
   children: ReactNode;
+  zIndex?: number;
 }) {
   const dragControls = useDragControls();
   const y = useMotionValue(0);
@@ -22,9 +24,10 @@ export function Sheet({
 
   function handleDragEnd(_e: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) {
     if (info.offset.y > 110 || info.velocity.y > 600) {
-      onOpenChange(false);
+      const dismissTarget = Math.max(y.get() + 200, 500);
+      animate(y, dismissTarget, { type: "spring", velocity: info.velocity.y, bounce: 0.2, duration: 0.3 }).then(() => onOpenChange(false));
     } else {
-      animate(y, 0, { type: "spring", stiffness: 500, damping: 34 });
+      animate(y, 0, { type: "spring", velocity: info.velocity.y, bounce: 0.2, duration: 0.3 });
     }
   }
 
@@ -32,17 +35,18 @@ export function Sheet({
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Backdrop
-          className="fixed inset-0 z-30 transition-opacity duration-200 ease-out data-[starting-style]:opacity-0 data-[ending-style]:opacity-0"
-          style={{ background: "rgba(10,15,15,0.45)" }}
+          className="fixed inset-0 transition-opacity duration-200 ease-out data-[starting-style]:opacity-0 data-[ending-style]:opacity-0"
+          style={{ background: "rgba(10,15,15,0.45)", zIndex }}
         />
         <Dialog.Popup
-          className="fixed left-0 right-0 bottom-0 z-30 rounded-t-[24px] transition-all duration-250 ease-out data-[starting-style]:opacity-0 data-[starting-style]:translate-y-6 data-[ending-style]:opacity-0 data-[ending-style]:translate-y-6 overflow-hidden"
+          className="fixed left-0 right-0 bottom-0 rounded-t-[24px] transition-all duration-250 ease-out data-[starting-style]:opacity-0 data-[starting-style]:translate-y-6 data-[ending-style]:opacity-0 data-[ending-style]:translate-y-6 overflow-hidden"
           style={{
             background: "var(--glass-bg-strong)",
             backdropFilter: "blur(30px) saturate(180%)",
             border: "1px solid var(--glass-border)",
             borderBottom: "none",
             maxHeight: "88vh",
+            zIndex,
           }}
         >
           <motion.div
