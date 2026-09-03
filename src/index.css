@@ -1,76 +1,85 @@
 @import "tailwindcss";
 
 :root {
-  --bg: #e9edf1;
+  --bg: #f3f0fa;
   --card-bg: #ffffff;
-  --text: #1c1e21;
-  --text-muted: #8a8f98;
-  --border: rgba(20, 20, 30, 0.06);
-  --accent: #17b892;
-  --accent2: #0e8f8a;
-  --accent-soft: rgba(23, 184, 146, 0.12);
+  --text: #1a1a2e;
+  --text-muted: #8b88a0;
+  --border: rgba(30, 20, 60, 0.07);
+  --accent: #6c5ce8;
+  --accent2: #4834b0;
+  --accent-soft: rgba(108, 92, 232, 0.13);
   --accent-contrast: #ffffff;
-  --danger: #ef4a6d;
-  --danger-soft: rgba(239, 74, 109, 0.12);
+  --danger: #f0436b;
+  --danger-soft: rgba(240, 67, 107, 0.13);
   --warning: #f5a524;
-  --warning-soft: rgba(245, 165, 36, 0.14);
-  --input-bg: #f0f1f5;
-  --shadow: 0 8px 24px rgba(20, 30, 40, 0.06);
-  --shadow-lg: 0 14px 34px rgba(15, 120, 100, 0.18);
-  --glass-bg: rgba(255, 255, 255, 0.72);
+  --warning-soft: rgba(245, 165, 36, 0.15);
+  --input-bg: #eeecf8;
+  --shadow: 0 8px 24px rgba(40, 20, 90, 0.07);
+  --shadow-lg: 0 16px 36px rgba(70, 40, 160, 0.2);
+  --glass-bg: rgba(255, 255, 255, 0.68);
   --glass-bg-strong: rgba(255, 255, 255, 0.88);
   --glass-border: rgba(255, 255, 255, 0.85);
   --glass-highlight: rgba(255, 255, 255, 1);
+  --hero-gradient: radial-gradient(120% 100% at 15% 0%, #ff8a65 0%, transparent 55%),
+    radial-gradient(120% 100% at 85% 10%, #f0436b 0%, transparent 55%),
+    linear-gradient(160deg, #7c6cf0 0%, #6c5ce8 45%, #4834b0 100%);
   --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-in-out-strong: cubic-bezier(0.77, 0, 0.175, 1);
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #101214;
-    --card-bg: #1b1e22;
-    --text: #f0f1f3;
-    --text-muted: #8d939c;
-    --border: rgba(255, 255, 255, 0.08);
-    --accent: #22d3a8;
-    --accent2: #17a58c;
-    --accent-soft: rgba(34, 211, 168, 0.16);
-    --accent-contrast: #06231c;
-    --danger: #ff6b8b;
-    --danger-soft: rgba(255, 107, 139, 0.16);
+    --bg: #100c1e;
+    --card-bg: #1c1830;
+    --text: #f1eefc;
+    --text-muted: #9691b3;
+    --border: rgba(255, 255, 255, 0.09);
+    --accent: #a78bfa;
+    --accent2: #7c5cf0;
+    --accent-soft: rgba(167, 139, 250, 0.18);
+    --accent-contrast: #17102e;
+    --danger: #ff7597;
+    --danger-soft: rgba(255, 117, 151, 0.18);
     --warning: #ffc257;
     --warning-soft: rgba(255, 194, 87, 0.16);
-    --input-bg: #24272c;
-    --shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
-    --shadow-lg: 0 14px 34px rgba(0, 0, 0, 0.45);
-    --glass-bg: rgba(28, 30, 34, 0.5);
-    --glass-bg-strong: rgba(28, 30, 34, 0.82);
+    --input-bg: #241f3d;
+    --shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 16px 36px rgba(0, 0, 0, 0.5);
+    --glass-bg: rgba(30, 26, 48, 0.55);
+    --glass-bg-strong: rgba(30, 26, 48, 0.85);
     --glass-border: rgba(255, 255, 255, 0.12);
-    --glass-highlight: rgba(255, 255, 255, 0.16);
+    --glass-highlight: rgba(255, 255, 255, 0.14);
+    --hero-gradient: radial-gradient(120% 100% at 15% 0%, #ff8a65 0%, transparent 50%),
+      radial-gradient(120% 100% at 85% 10%, #f0436b 0%, transparent 50%),
+      linear-gradient(160deg, #4c3d94 0%, #372a78 45%, #201958 100%);
   }
 }
 
 :root[data-theme="dark"] {
-  --bg: #101214;
-  --card-bg: #1b1e22;
-  --text: #f0f1f3;
-  --text-muted: #8d939c;
-  --border: rgba(255, 255, 255, 0.08);
-  --accent: #22d3a8;
-  --accent2: #17a58c;
-  --accent-soft: rgba(34, 211, 168, 0.16);
-  --accent-contrast: #06231c;
-  --danger: #ff6b8b;
-  --danger-soft: rgba(255, 107, 139, 0.16);
+  --bg: #100c1e;
+  --card-bg: #1c1830;
+  --text: #f1eefc;
+  --text-muted: #9691b3;
+  --border: rgba(255, 255, 255, 0.09);
+  --accent: #a78bfa;
+  --accent2: #7c5cf0;
+  --accent-soft: rgba(167, 139, 250, 0.18);
+  --accent-contrast: #17102e;
+  --danger: #ff7597;
+  --danger-soft: rgba(255, 117, 151, 0.18);
   --warning: #ffc257;
   --warning-soft: rgba(255, 194, 87, 0.16);
-  --input-bg: #24272c;
-  --shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
-  --shadow-lg: 0 14px 34px rgba(0, 0, 0, 0.45);
-  --glass-bg: rgba(28, 30, 34, 0.5);
-  --glass-bg-strong: rgba(28, 30, 34, 0.82);
+  --input-bg: #241f3d;
+  --shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 16px 36px rgba(0, 0, 0, 0.5);
+  --glass-bg: rgba(30, 26, 48, 0.55);
+  --glass-bg-strong: rgba(30, 26, 48, 0.85);
   --glass-border: rgba(255, 255, 255, 0.12);
-  --glass-highlight: rgba(255, 255, 255, 0.16);
+  --glass-highlight: rgba(255, 255, 255, 0.14);
+  --hero-gradient: radial-gradient(120% 100% at 15% 0%, #ff8a65 0%, transparent 50%),
+    radial-gradient(120% 100% at 85% 10%, #f0436b 0%, transparent 50%),
+    linear-gradient(160deg, #4c3d94 0%, #372a78 45%, #201958 100%);
 }
 
 * {
@@ -84,15 +93,41 @@ body,
   margin: 0;
   padding: 0;
   min-height: 100vh;
-  background: var(--bg);
   color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "PingFang TC", "Noto Sans TC", sans-serif;
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior-y: none;
 }
 
+html,
+body {
+  background: var(--bg);
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 340px;
+  background: var(--hero-gradient);
+  z-index: 0;
+  pointer-events: none;
+}
+
+#root {
+  position: relative;
+  z-index: 1;
+}
+
 button {
   font-family: inherit;
+}
+
+.card-surface {
+  background: var(--card-bg);
+  box-shadow: var(--shadow), inset 0 1px 0 var(--card-highlight, rgba(255, 255, 255, 0.5));
 }
 
 @media (prefers-reduced-motion: reduce) {

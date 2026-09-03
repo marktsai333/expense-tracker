@@ -109,14 +109,14 @@ export async function getSettings(): Promise<AppSettings> {
 }
 
 export const DEFAULT_CATEGORIES: NewCategory[] = [
-  { name: "飲料", icon: "🥤", color: "#4fb3a9", excludeFromChart: false },
-  { name: "食物", icon: "🍜", color: "#e08a4c", excludeFromChart: false },
-  { name: "居住", icon: "🏠", color: "#7a8bc4", excludeFromChart: false },
-  { name: "交通", icon: "🚗", color: "#c4577a", excludeFromChart: false },
-  { name: "生活", icon: "🧴", color: "#9a6bc4", excludeFromChart: false },
-  { name: "學費", icon: "🎓", color: "#5b7fd4", excludeFromChart: true },
-  { name: "房租", icon: "🏡", color: "#b5895a", excludeFromChart: true },
-  { name: "其他", icon: "📦", color: "#8d9199", excludeFromChart: false },
+  { name: "飲料", icon: "🥤", color: "#06b6d4", excludeFromChart: false },
+  { name: "食物", icon: "🍜", color: "#f59e0b", excludeFromChart: false },
+  { name: "居住", icon: "🏠", color: "#8b5cf6", excludeFromChart: false },
+  { name: "交通", icon: "🚗", color: "#ec4899", excludeFromChart: false },
+  { name: "生活", icon: "🧴", color: "#10b981", excludeFromChart: false },
+  { name: "學費", icon: "🎓", color: "#3b82f6", excludeFromChart: true },
+  { name: "房租", icon: "🏡", color: "#f97316", excludeFromChart: true },
+  { name: "其他", icon: "📦", color: "#6b7280", excludeFromChart: false },
 ];
 
 export const DEFAULT_PAYMENT_METHODS: NewPaymentMethod[] = [

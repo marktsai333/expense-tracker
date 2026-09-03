@@ -33,7 +33,11 @@ export function TxRow({
     >
       <div
         className="w-[42px] h-[42px] rounded-full flex items-center justify-center text-[19px] flex-shrink-0"
-        style={{ background: category.color + "33", color: category.color }}
+        style={{
+          background: `linear-gradient(150deg, ${category.color}38, ${category.color}18)`,
+          border: `1px solid ${category.color}30`,
+          boxShadow: `inset 0 -1.5px 3px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.5)`,
+        }}
       >
         {category.icon}
       </div>

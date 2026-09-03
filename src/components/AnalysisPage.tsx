@@ -1,14 +1,14 @@
 import { useMemo, useState } from "react";
 import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
-  LineChart, Line, XAxis, YAxis, CartesianGrid,
+  XAxis, YAxis, CartesianGrid,
   BarChart, Bar,
 } from "recharts";
 import { useStore } from "../store/useStore";
 import { byId, filterChartable, getMonthTransactions, sum } from "../lib/selectors";
-import { formatMoney, daysInMonth, monthKey } from "../lib/format";
+import { formatMoney, monthKey } from "../lib/format";
 
-const ACCENT = "#17b892";
+const ACCENT = "#6c5ce8";
 
 export function AnalysisPage() {
   const categories = useStore((s) => s.categories);
@@ -66,16 +66,6 @@ export function AnalysisPage() {
     return null;
   }, [monthTx, lastMonth, categoryById, pieData, total]);
 
-  const lineData = useMemo(() => {
-    const nDays = daysInMonth(year, month);
-    const dayTotals = new Array(nDays + 1).fill(0);
-    for (const tx of monthTx) {
-      const day = parseInt(tx.date.split("-")[2], 10);
-      dayTotals[day] += tx.amount;
-    }
-    return Array.from({ length: nDays }, (_, i) => ({ day: String(i + 1), amount: dayTotals[i + 1] }));
-  }, [monthTx, year, month]);
-
   const barData = useMemo(() => {
     const groups = [];
     for (let i = 5; i >= 0; i--) {
@@ -125,19 +115,6 @@ export function AnalysisPage() {
             </PieChart>
           </ResponsiveContainer>
         )}
-      </div>
-
-      <div className="rounded-[20px] p-4" style={cardStyle}>
-        <h2 className="text-[15px] font-bold mb-3">每日支出趨勢</h2>
-        <ResponsiveContainer width="100%" height={200}>
-          <LineChart data={lineData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-            <XAxis dataKey="day" tick={{ fontSize: 11, fill: "var(--text-muted)" }} interval={Math.ceil(lineData.length / 6)} />
-            <YAxis tick={{ fontSize: 11, fill: "var(--text-muted)" }} width={36} />
-            <Tooltip formatter={(v: any) => formatMoney(Number(v))} />
-            <Line type="monotone" dataKey="amount" stroke={ACCENT} strokeWidth={2} dot={{ r: 3 }} />
-          </LineChart>
-        </ResponsiveContainer>
       </div>
 
       <div className="rounded-[20px] p-4" style={cardStyle}>
