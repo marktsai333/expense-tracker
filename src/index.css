@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 :root {
-  --bg: #f4f5f8;
+  --bg: #e9edf1;
   --card-bg: #ffffff;
   --text: #1c1e21;
   --text-muted: #8a8f98;
@@ -17,10 +17,10 @@
   --input-bg: #f0f1f5;
   --shadow: 0 8px 24px rgba(20, 30, 40, 0.06);
   --shadow-lg: 0 14px 34px rgba(15, 120, 100, 0.18);
-  --glass-bg: rgba(255, 255, 255, 0.55);
-  --glass-bg-strong: rgba(255, 255, 255, 0.78);
-  --glass-border: rgba(255, 255, 255, 0.6);
-  --glass-highlight: rgba(255, 255, 255, 0.9);
+  --glass-bg: rgba(255, 255, 255, 0.72);
+  --glass-bg-strong: rgba(255, 255, 255, 0.88);
+  --glass-border: rgba(255, 255, 255, 0.85);
+  --glass-highlight: rgba(255, 255, 255, 1);
   --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-in-out-strong: cubic-bezier(0.77, 0, 0.175, 1);
 }
