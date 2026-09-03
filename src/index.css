@@ -1,0 +1,83 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #f4f5f8;
+  --card-bg: #ffffff;
+  --text: #1c1e21;
+  --text-muted: #8a8f98;
+  --border: rgba(20, 20, 30, 0.06);
+  --accent: #17b892;
+  --accent2: #0e8f8a;
+  --accent-soft: rgba(23, 184, 146, 0.12);
+  --accent-contrast: #ffffff;
+  --danger: #ef4a6d;
+  --danger-soft: rgba(239, 74, 109, 0.12);
+  --warning: #f5a524;
+  --warning-soft: rgba(245, 165, 36, 0.14);
+  --input-bg: #f0f1f5;
+  --shadow: 0 8px 24px rgba(20, 30, 40, 0.06);
+  --shadow-lg: 0 14px 34px rgba(15, 120, 100, 0.18);
+  --glass-bg: rgba(255, 255, 255, 0.55);
+  --glass-bg-strong: rgba(255, 255, 255, 0.78);
+  --glass-border: rgba(255, 255, 255, 0.6);
+  --glass-highlight: rgba(255, 255, 255, 0.9);
+  --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out-strong: cubic-bezier(0.77, 0, 0.175, 1);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #101214;
+    --card-bg: #1b1e22;
+    --text: #f0f1f3;
+    --text-muted: #8d939c;
+    --border: rgba(255, 255, 255, 0.08);
+    --accent: #22d3a8;
+    --accent2: #17a58c;
+    --accent-soft: rgba(34, 211, 168, 0.16);
+    --accent-contrast: #06231c;
+    --danger: #ff6b8b;
+    --danger-soft: rgba(255, 107, 139, 0.16);
+    --warning: #ffc257;
+    --warning-soft: rgba(255, 194, 87, 0.16);
+    --input-bg: #24272c;
+    --shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    --shadow-lg: 0 14px 34px rgba(0, 0, 0, 0.45);
+    --glass-bg: rgba(28, 30, 34, 0.5);
+    --glass-bg-strong: rgba(28, 30, 34, 0.82);
+    --glass-border: rgba(255, 255, 255, 0.12);
+    --glass-highlight: rgba(255, 255, 255, 0.16);
+  }
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "PingFang TC", "Noto Sans TC", sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+}
+
+button {
+  font-family: inherit;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
