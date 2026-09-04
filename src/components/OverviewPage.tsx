@@ -21,7 +21,9 @@ export function OverviewPage() {
   const cashAccounts = useMemo(() => paymentMethods.filter((p) => !p.isCredit), [paymentMethods]);
   const creditAccounts = useMemo(() => paymentMethods.filter((p) => p.isCredit), [paymentMethods]);
 
-  const primaryCard = useMemo(() => creditAccounts.find((p) => p.limit), [creditAccounts]);
+  const cardWithLimit = useMemo(() => creditAccounts.find((p) => p.limit), [creditAccounts]);
+  const cardWithoutLimit = useMemo(() => creditAccounts.find((p) => !p.limit), [creditAccounts]);
+  const primaryCard = cardWithLimit;
   const cardUsed = primaryCard ? -computeAccountBalance(primaryCard, transactions) : 0;
   const cardLimit = primaryCard?.limit ?? 0;
   const cardPct = primaryCard && cardLimit > 0 ? Math.min(100, (cardUsed / cardLimit) * 100) : 0;
@@ -75,6 +77,15 @@ export function OverviewPage() {
                 />
               </div>
             </>
+          ) : cardWithoutLimit ? (
+            <div onClick={() => openPaymentSheet(cardWithoutLimit)} className="cursor-pointer">
+              <div className="text-[12px] font-bold" style={{ color: "var(--text-muted)" }}>
+                {cardWithoutLimit.icon} {cardWithoutLimit.name}
+              </div>
+              <div className="text-[15px] font-bold mt-1" style={{ color: "var(--accent)" }}>
+                尚未設定額度,點此設定 ›
+              </div>
+            </div>
           ) : (
             <>
               <div className="text-[12px] font-bold" style={{ color: "var(--text-muted)" }}>
