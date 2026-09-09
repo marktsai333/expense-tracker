@@ -103,6 +103,9 @@
           #mySheet .my-sheet-scroll { scroll-behavior:auto !important; }
           .settings-list-phone-reorder .swipe-action { visibility:hidden !important; pointer-events:none !important; }
           .settings-list-phone-reorder .reorder-row.dragging { z-index:5 !important; }
+          /* A visible build marker belongs only to the phone test entry. It
+             lets the iPhone test distinguish a fresh deployment from cache. */
+          .phone-build-version { margin:22px 0 8px !important; color:var(--muted) !important; font-size:10px !important; font-weight:650 !important; letter-spacing:.02em !important; text-align:center !important; }
         `;
         doc.head.appendChild(style);
 
@@ -424,6 +427,18 @@
           })();
         `;
         doc.body.appendChild(settingsScript);
+
+        // Keep a human-readable build marker at the bottom of 「我的」. This
+        // is deliberately visible in the product UI so phone testing never
+        // has to infer whether a cached deployment is current.
+        const myContent = doc.querySelector('#pageMe .my-content');
+        if (myContent && !doc.getElementById('phoneBuildVersion')) {
+          const buildVersion = doc.createElement('p');
+          buildVersion.id = 'phoneBuildVersion';
+          buildVersion.className = 'phone-build-version';
+          buildVersion.textContent = '手機測試版 v5 · 2026-09-09 · 底部安全區修正';
+          myContent.appendChild(buildVersion);
+        }
 
         // The approved Demo is intentionally a desktop-preview document and
         // has no viewport meta tag. Add the mobile viewport only in this
