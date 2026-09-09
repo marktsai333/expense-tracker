@@ -49,14 +49,20 @@
           html, body, .device-frame, .device-screen, .phone, .screen, button, a, label, .tab, .account-row, .swipe-wrap { -webkit-user-select:none !important; user-select:none !important; -webkit-touch-callout:none !important; }
           input, textarea, select, [contenteditable="true"] { -webkit-user-select:text !important; user-select:text !important; -webkit-touch-callout:default !important; }
           .toolbar { display:none !important; }
-          .device-frame { width:100vw !important; height:100% !important; height:100dvh !important; min-height:100% !important; min-height:100dvh !important; margin:0 !important; padding:0 !important; border-radius:0 !important; background:var(--bg) !important; box-shadow:none !important; }
+          /* Match the iframe's actual rendered box, rather than asking iOS
+             for a second dynamic-viewport measurement. In an installed PWA
+             those two measurements can differ by the home-indicator inset,
+             which leaves a visible strip after white long-page content. */
+          .device-frame { width:100vw !important; height:100% !important; min-height:100% !important; margin:0 !important; padding:0 !important; border-radius:0 !important; background:var(--bg) !important; box-shadow:none !important; }
           .device-screen { width:100% !important; height:100% !important; border-radius:0 !important; background:var(--bg) !important; }
           .dynamic-island, .status-bar, .home-indicator { display:none !important; }
           /* The phone entry point owns the screen geometry. Keep the approved
              62px top rhythm, but reserve one 84px content-clearance band for
              the visible bottom capsule; do not add a second bottom safe-area
              offset to the capsule itself. */
-          .phone { padding-top:max(62px, var(--phone-safe-top, env(safe-area-inset-top, 0px))) !important; padding-bottom:calc(84px + var(--phone-safe-bottom, 0px)) !important; background:transparent !important; overscroll-behavior-y:none !important; }
+          /* 70px capsule + 8px clearance + its final bottom anchor. This is
+             the minimum last-row clearance, not a second safe-area band. */
+          .phone { padding-top:max(62px, var(--phone-safe-top, env(safe-area-inset-top, 0px))) !important; padding-bottom:calc(78px + max(16px, calc(var(--phone-safe-bottom, 0px) - 4px))) !important; background:transparent !important; overscroll-behavior-y:none !important; }
           .screen.visible { background:var(--bg) !important; }
           .device-screen::before { content:""; position:absolute; z-index:0; top:0; right:0; left:0; height:max(62px, var(--phone-safe-top, env(safe-area-inset-top, 0px))); background:var(--accent) !important; pointer-events:none; }
           .device-screen[data-phone-surface="overview"]::before { background:var(--accent) !important; }
@@ -68,7 +74,7 @@
              anchor only; max() keeps the approved 16px rhythm on devices
              with no home-indicator inset without creating a second strip
              below the app surface. */
-          .safe-zone { bottom:max(16px, var(--phone-safe-bottom, 0px)) !important; height:70px !important; align-items:flex-end !important; }
+          .safe-zone { bottom:max(16px, calc(var(--phone-safe-bottom, 0px) - 4px)) !important; height:70px !important; align-items:flex-end !important; }
           .safe-zone.phone-sheet-open { display:none !important; }
           .tabbar { bottom:auto !important; }
           .fab { bottom:92px !important; }
@@ -437,7 +443,7 @@
           const buildVersion = doc.createElement('p');
           buildVersion.id = 'phoneBuildVersion';
           buildVersion.className = 'phone-build-version';
-          buildVersion.textContent = '手機測試版 v6 · 2026-09-09 · 底部斷層修正';
+          buildVersion.textContent = '手機測試版 v7 · 2026-09-09 · 長頁底部間距修正';
           myContent.appendChild(buildVersion);
         }
 
