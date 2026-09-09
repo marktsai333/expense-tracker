@@ -194,12 +194,28 @@
     const r = opt.getBoundingClientRect();
     return { x: r.left - segRect.left - ovSegmented.clientLeft, w: r.width };
   }
-  {
+  function syncOverviewSegmented() {
     const active = ovSegmented.querySelector(':scope > .seg-opt.active');
+    if (!active || !ovSegmented.offsetWidth) return;
     const { x, w } = ovOptRect(active);
     ovPillX.set(x);
     ovPillW.set(w);
+    ovSegPill.style.left = x + 'px';
+    ovSegPill.style.width = w + 'px';
   }
+  syncOverviewSegmented();
+  // The phone entry point adds its viewport/safe-area stylesheet after this
+  // script loads. That can change the segmented control's width after the
+  // first measurement. Observe the actual box so the indicator never needs a
+  // manual tap to be corrected on the first standalone visit.
+  const ovSegmentedResizeObserver = typeof ResizeObserver === 'function'
+    ? new ResizeObserver(syncOverviewSegmented)
+    : null;
+  ovSegmentedResizeObserver?.observe(ovSegmented);
+  window.addEventListener('resize', syncOverviewSegmented, { passive: true });
+  window.visualViewport?.addEventListener('resize', syncOverviewSegmented, { passive: true });
+  window.addEventListener('pageshow', syncOverviewSegmented, { passive: true });
+  requestAnimationFrame(() => requestAnimationFrame(syncOverviewSegmented));
   let ovCurrentIndex = 0;
   const ovPanelAssets = document.getElementById('ovPanelAssets');
   const ovPanelLiabilities = document.getElementById('ovPanelLiabilities');
