@@ -55,6 +55,17 @@
              which leaves a visible strip after white long-page content. */
           .device-frame { width:100vw !important; height:100% !important; min-height:100% !important; margin:0 !important; padding:0 !important; border-radius:0 !important; background:var(--bg) !important; box-shadow:none !important; }
           .device-screen { width:100% !important; height:100% !important; border-radius:0 !important; background:var(--bg) !important; }
+          /* WebKit standalone PWA workaround: with viewport-fit=cover and
+             black-translucent, percentage/dynamic viewport height and an
+             absolutely anchored bottom can stop at the safe-area edge. Use
+             the full vh canvas and viewport-fixed chrome only in the actual
+             Home Screen app. */
+          html.phone-standalone,
+          html.phone-standalone body { width:100vw !important; height:100vh !important; min-height:100vh !important; }
+          html.phone-standalone body { position:fixed !important; inset:0 !important; overflow:hidden !important; }
+          html.phone-standalone .device-frame { position:fixed !important; inset:0 !important; width:auto !important; height:auto !important; min-height:0 !important; box-sizing:border-box !important; }
+          html.phone-standalone .device-screen { position:absolute !important; inset:0 !important; width:auto !important; height:auto !important; overflow:visible !important; }
+          html.phone-standalone .safe-zone { position:fixed !important; }
           .dynamic-island, .status-bar, .home-indicator { display:none !important; }
           /* The phone entry point owns the screen geometry. Keep the approved
              62px top rhythm, but reserve one 84px content-clearance band for
@@ -444,7 +455,7 @@
           const buildVersion = doc.createElement('p');
           buildVersion.id = 'phoneBuildVersion';
           buildVersion.className = 'phone-build-version';
-          buildVersion.textContent = '手機測試版 v9 · 2026-09-09 · 主畫面安全區重構';
+          buildVersion.textContent = '手機測試版 v10 · 2026-09-09 · WebKit 主畫面定位修正';
           myContent.appendChild(buildVersion);
         }
 
@@ -459,6 +470,11 @@
         } else {
           doc.head.querySelector('meta[name="viewport"]').content = 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover';
         }
+
+        // Apple exposes both signals across iOS generations. Mark the real
+        // Home Screen app so only it receives the WebKit viewport workaround.
+        const isPhoneStandalone = window.matchMedia?.('(display-mode: standalone)').matches || window.navigator.standalone === true;
+        doc.documentElement.classList.toggle('phone-standalone', isPhoneStandalone);
 
         // Read the outer safe-area values once and expose them to the
         // same-origin Demo iframe.  Do not make the iframe taller than its

@@ -12,7 +12,7 @@
 
   const boot = async () => {
     try {
-      const response = await fetch('./phone-shell.html?runtime=v9', { cache: 'no-store' });
+      const response = await fetch('./phone-shell.html?runtime=v10', { cache: 'no-store' });
       if (!response.ok) throw new Error(`runtime source ${response.status}`);
       const shell = await response.text();
       const scripts = Array.from(shell.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi));
@@ -29,7 +29,7 @@
       const error = { style: {} };
       const callbackBody = source.slice(start + marker.length, end);
       new Function('frame', 'error', callbackBody)(frame, error);
-      document.documentElement.dataset.phoneRuntime = 'v9';
+      document.documentElement.dataset.phoneRuntime = 'v10';
     } catch (runtimeError) {
       reportFailure('手機版無法載入必要的互動層。請重新開啟 App。');
       console.error(runtimeError);

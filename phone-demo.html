@@ -22,7 +22,7 @@
     (async () => {
       const loading = document.getElementById('phoneLoading');
       try {
-        const response = await fetch('./combined-demo.html?phoneRev=v9', { cache: 'no-store' });
+        const response = await fetch('./combined-demo.html?phoneRev=v10', { cache: 'no-store' });
         if (!response.ok) throw new Error(`demo source ${response.status}`);
         let source = await response.text();
         const mobileHead = [
@@ -32,7 +32,7 @@
           '<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">',
           '<meta name="apple-mobile-web-app-title" content="記帳">',
         ].join('');
-        const runtimeTag = '<script src="phone-runtime-loader.js?runtime=v9"><' + '/script>';
+        const runtimeTag = '<script src="phone-runtime-loader.js?runtime=v10"><' + '/script>';
         source = source.replace(/<\/head>/i, `${mobileHead}</head>`);
         source = source.replace(/<\/body>/i, `${runtimeTag}</body>`);
         document.open();
