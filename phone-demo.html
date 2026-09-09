@@ -56,16 +56,18 @@
              62px top rhythm, but reserve one 84px content-clearance band for
              the visible bottom capsule; do not add a second bottom safe-area
              offset to the capsule itself. */
-          .phone { padding-top:max(62px, var(--phone-safe-top, env(safe-area-inset-top, 0px))) !important; padding-bottom:84px !important; background:transparent !important; overscroll-behavior-y:none !important; }
+          .phone { padding-top:max(62px, var(--phone-safe-top, env(safe-area-inset-top, 0px))) !important; padding-bottom:calc(84px + var(--phone-safe-bottom, 0px)) !important; background:transparent !important; overscroll-behavior-y:none !important; }
           .screen.visible { background:var(--bg) !important; }
           .device-screen::before { content:""; position:absolute; z-index:0; top:0; right:0; left:0; height:max(62px, var(--phone-safe-top, env(safe-area-inset-top, 0px))); background:var(--accent) !important; pointer-events:none; }
           .device-screen[data-phone-surface="overview"]::before { background:var(--accent) !important; }
           .device-screen[data-phone-surface="me"]::before { background:#44adb5 !important; }
           .device-screen[data-phone-surface="neutral"]::before { background:var(--bg) !important; }
           .phone { z-index:1 !important; }
-          /* Keep the capsule's approved 340×70 size, but remove the extra
-             84px centering band that was lifting it away from the bottom. */
-          .safe-zone { bottom:16px !important; height:70px !important; align-items:flex-end !important; }
+          /* Extend the document background through the physical iPhone home
+             area, while adding that same inset to the capsule anchor. The
+             capsule therefore stays at the approved visual position instead
+             of leaving a separate grey band below it. */
+          .safe-zone { bottom:calc(16px + var(--phone-safe-bottom, 0px)) !important; height:70px !important; align-items:flex-end !important; }
           .safe-zone.phone-sheet-open { display:none !important; }
           .tabbar { bottom:auto !important; }
           .fab { bottom:92px !important; }
@@ -448,7 +450,13 @@
           const bottom = Number.parseFloat(computed.paddingBottom) || 0;
           probe.remove();
           doc.documentElement.style.setProperty('--phone-safe-top', `${top}px`);
+          doc.documentElement.style.setProperty('--phone-safe-bottom', `${bottom}px`);
           doc.documentElement.dataset.phoneSafeBottom = String(bottom);
+          // A standalone PWA's visual viewport can stop above the physical
+          // home-indicator area. Extend only this wrapper frame into that
+          // area; .safe-zone receives the same inset above, so it does not
+          // move down with the background.
+          frame.style.height = bottom > 0 ? `calc(100dvh + ${bottom}px)` : '';
         };
         readPhoneSafeArea();
         window.addEventListener('resize', readPhoneSafeArea, { passive:true });
