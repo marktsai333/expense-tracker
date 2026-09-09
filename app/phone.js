@@ -1,41 +1,4 @@
-<!doctype html>
-<html lang="zh-Hant">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate" />
-  <meta http-equiv="Pragma" content="no-cache" />
-  <meta http-equiv="Expires" content="0" />
-  <meta name="theme-color" content="#1a9b9e" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="記帳" />
-  <title>記帳 Demo｜手機入口</title>
-  <style>
-    :root { color-scheme: light; }
-    html, body { width: 100%; height: 100%; min-height: 100%; min-height: 100dvh; margin: 0; overflow: hidden; background: #eef1f2; }
-    #demoFrame { display: block; width: 100%; height: 100%; height: 100dvh; min-height: 100%; min-height: 100dvh; max-height: 100dvh; border: 0; background: #eef1f2; }
-    #loadError { display: none; padding: 24px; color: #1c2226; font: 16px/1.6 -apple-system, BlinkMacSystemFont, "PingFang TC", sans-serif; }
-  </style>
-</head>
-<body>
-  <iframe id="demoFrame" title="記帳整合 Demo" src="combined-demo.html?phoneRev=latest"></iframe>
-  <div id="loadError">
-    無法載入整合 Demo。這個手機入口需要透過 HTTP 伺服器開啟，不能直接用 <code>file://</code> 載入 iframe。<br />
-    <a href="./phone-demo.html?latest=1">開啟 HTTP 版本</a>
-  </div>
-  <script>
-    // Keep one canonical phone-preview URL. Older rev=... links are redirected
-    // here so a stale browser tab cannot be mistaken for the current build.
-    if ((location.protocol === 'http:' || location.protocol === 'https:') && new URLSearchParams(location.search).get('latest') !== '1') {
-      const canonicalUrl = new URL('./phone-demo.html?latest=1', location.href);
-      location.replace(canonicalUrl.href);
-    }
-
-    const frame = document.getElementById('demoFrame');
-    const error = document.getElementById('loadError');
-
-    frame.addEventListener('load', () => {
+(() => { const frame={contentDocument:document,src:location.href,style:{}};const error={style:{}};
       try {
         const doc = frame.contentDocument;
         if (!doc) throw new Error('Demo document unavailable');
@@ -237,9 +200,9 @@
                 orderedIds.splice(current.index, 0, moved);
                 if (current.index !== current.origin) {
                   moveGroupAccounts(current.ids, orderedIds);
+                  const ids = accounts.map(a => a.id);
                   clearPresentation();
-                  renderSettingsList();
-                  renderAccountList();
+                  window.runLedgerAction(() => window.ledger.reorderAccounts(ids));
                 } else {
                   clearPresentation();
                 }
@@ -281,8 +244,8 @@
                   const target = item.closest('.swipe-wrap') || item;
                   target.style.transition = reducedMotion() ? 'none' : 'transform 180ms cubic-bezier(.22,.61,.36,1)';
                 });
-                current.target.style.zIndex = '5';
-                current.target.style.overflow = 'visible';
+                drag.target.style.zIndex = '5';
+                drag.target.style.overflow = 'visible';
                 closeAllSwipes?.(container);
                 handle.setPointerCapture?.(event.pointerId);
               }, true);
@@ -607,7 +570,7 @@
           // Add a phone-entry cache key to the nested approved details Demo as
           // well. Safari may otherwise keep the previous iframe response even
           // after the outer phone URL receives a new rev query.
-          const detailsSrc = new URL(detailsFrame.getAttribute('src') || 'details-demo.html?embed=1', frame.src);
+          const detailsSrc = new URL('./app/details.html?embed=1', frame.src);
           detailsSrc.searchParams.set('phoneRev', 'latest');
           if (detailsFrame.src !== detailsSrc.href) detailsFrame.src = detailsSrc.href;
         }
@@ -739,7 +702,4 @@
         error.style.display = 'block';
         frame.style.display = 'none';
       }
-    });
-  </script>
-</body>
-</html>
+document.documentElement.dataset.phoneRuntime='v10';})();

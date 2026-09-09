@@ -1,898 +1,4 @@
-<!DOCTYPE html>
-<html lang="zh-Hant">
-<head>
-<meta charset="UTF-8">
-<title>整合 Demo：總覽＋帳戶＋底部導覽</title>
-<style>
-  /* SHARED tokens — merged from accounts-flow-demo.html, overview-toggle-demo.html,
-     tabbar-morph-demo3.html. All three already agreed on the core palette; this
-     just collects every token any of the three pages actually uses into one
-     place instead of three copies. */
-  :root{
-    --bg:#eef1f2; --card:#ffffff; --text:#1c2226; --muted:#7a8790;
-    --border:rgba(20,30,35,0.08);
-    --accent:#1a9b9e; --accent2:#f5a623; --accent-soft:rgba(26,155,158,0.1);
-    --success:#22a854; --danger:#e0483f; --danger-soft:rgba(224,72,63,0.1);
-    --progress-track:rgba(20,30,35,0.08);
-    --sheet-backdrop:rgba(10,14,16,0.4);
-    --chip-bg:rgba(20,30,35,0.07);
-    --seg-track:rgba(20,30,35,0.06);
-    --seg-pill:#ffffff;
-    --seg-pill-shadow:0 1px 3px rgba(0,0,0,0.15), 0 1px 1px rgba(0,0,0,0.08);
-    --hero-gradient-top:#d9f0f0;
-    --bar-surface:rgba(255,255,255,0.75);
-    --bar-border:rgba(255,255,255,0.5);
-    --bar-shadow:0 8px 30px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.6);
-    --ind-fill:rgba(255,255,255,0.12);
-    --ind-rim-bright:rgba(255,255,255,0.95);
-    --ind-rim-mid:rgba(255,255,255,0.3);
-    --ind-specular-top:rgba(255,255,255,0.95);
-    --ind-specular-bottom:rgba(0,0,0,0.08);
-  }
-  [data-theme="dark"]{
-    --bg:#12181a; --card:#1a2224; --text:#ffffff; --muted:#8a97a0;
-    --border:#283336;
-    --accent:#2bc4c8; --accent2:#ffb84d; --accent-soft:rgba(43,196,200,0.16);
-    --success:#34d399; --danger:#ff5c52; --danger-soft:rgba(255,92,82,0.16);
-    --progress-track:rgba(255,255,255,0.12);
-    --sheet-backdrop:rgba(0,0,0,0.6);
-    --chip-bg:rgba(255,255,255,0.18);
-    --seg-track:rgba(0,0,0,0.28);
-    --seg-pill:#3a4548;
-    --seg-pill-shadow:0 1px 4px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.06);
-    --hero-gradient-top:rgba(43,196,200,0.22);
-    --bar-surface:rgba(30,38,41,0.72);
-    --bar-border:rgba(255,255,255,0.12);
-    --bar-shadow:0 8px 30px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.08);
-    --ind-fill:rgba(255,255,255,0.07);
-    --ind-rim-bright:rgba(255,255,255,0.55);
-    --ind-rim-mid:rgba(255,255,255,0.14);
-    --ind-specular-top:rgba(255,255,255,0.45);
-    --ind-specular-bottom:rgba(0,0,0,0.3);
-  }
-  *{box-sizing:border-box;}
-  body,html{margin:0;padding:0;background:#d8dcde;font-family:-apple-system,'PingFang TC',sans-serif;color:var(--text);}
-  body{ display:flex; flex-direction:column; align-items:center; min-height:100vh; }
 
-  .toolbar{ position:sticky; top:0; z-index:30; width:100%; display:flex; justify-content:center; gap:6px; flex-wrap:wrap; padding:14px 10px; background:#d8dcde; }
-  .toolbar button{ padding:7px 12px; border-radius:18px; border:1px solid var(--border); background:var(--card); color:var(--text); font-size:11px; font-weight:600; font-family:inherit; cursor:pointer; white-space:nowrap; }
-  .toolbar button.active{ background:var(--accent); color:#fff; border-color:var(--accent); }
-
-  /* iPhone device frame — same shell already approved on the 帳戶 demo,
-     now shared by every page instead of being redrawn per demo */
-  .device-frame{ position:relative; width:402px; height:874px; margin:8px auto 40px; background:#0a0a0a; border-radius:62px; padding:14px; box-shadow:0 24px 60px rgba(0,0,0,0.35), inset 0 0 0 2px rgba(255,255,255,0.06); flex-shrink:0; }
-  .device-screen{ position:relative; width:100%; height:100%; background:var(--bg); border-radius:48px; overflow:hidden; transition:background .2s; }
-  .dynamic-island{ position:absolute; top:11px; left:50%; transform:translateX(-50%); width:126px; height:37px; background:#000; border-radius:20px; z-index:25; }
-  .status-bar{ position:absolute; top:0; left:0; right:0; height:62px; display:flex; align-items:flex-end; justify-content:space-between; padding:0 26px 9px; z-index:20; color:var(--text); font-weight:600; font-size:15px; font-variant-numeric:tabular-nums; letter-spacing:-0.01em; pointer-events:none; transition:color .2s; }
-  .status-icons{ display:flex; align-items:center; gap:5px; }
-  .home-indicator{ position:absolute; bottom:8px; left:50%; transform:translateX(-50%); width:134px; height:5px; border-radius:3px; background:var(--text); opacity:0.4; z-index:20; pointer-events:none; }
-
-  /* extra bottom padding clears the floating tab bar (was 34px — just the
-     safe-area — before there was anything floating down there to clear) */
-  /* iOS 的捲軸是浮在內容上的；demo 也維持相同行為，避免長頁面因桌面捲軸
-     吃掉右側寬度，讓標題相對短頁面看起來向左偏。 */
-  .phone{ position:absolute; inset:0; overflow-y:auto; padding-top:62px; padding-bottom:112px; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
-  .phone::-webkit-scrollbar{ display:none; width:0; height:0; }
-
-  .screen{ display:none; }
-  .screen.visible{ display:block; }
-
-  /* Grid,不是 flex:1+text-align:center — 左右按鈕群組寬度不一樣時(帳戶主頁:左邊 1 顆齒輪、
-     右邊同步+新增 2 顆),flex:1 的置中框本身就是歪的,標題永遠會偏左右按鈕群組較寬的反方向。
-     grid 的 1fr/auto/1fr 三欄不管左右內容多寬,中間欄一定是整個 header 的正中央。 */
-  /* 注意:只有一顆子元素時,它同時符合 :first-child 和 :last-child,兩條 justify-self 規則會衝突
-     (等權重時後寫的 :last-child 贏,結果標題被推到最右邊,例如分析/明細/我的這幾個只有標題的
-     placeholder 頁面)。用 :not(:only-child) 排除這個情況,並讓單一子元素的標題 justify-self:stretch,
-     text-align:center 才吃得到置中效果。 */
-  /* 所有主分頁共用同一個 60px 頂部工具列：帳戶頁的 34px 操作按鈕
-     不能把標題往下推，分析等純標題頁也需保留相同的垂直節奏。 */
-  .page-header{ display:grid; grid-template-columns:1fr auto 1fr; align-items:center; align-content:center; min-height:60px; box-sizing:border-box; padding:8px 16px 18px; }
-  .page-header > *:first-child:not(:only-child){ justify-self:start; }
-  .page-header > *:last-child:not(:only-child){ justify-self:end; }
-  .page-header > .page-title:only-child{ grid-column:1 / -1; justify-self:stretch; }
-  .page-header.with-back{ display:flex; justify-content:flex-start; gap:14px; }
-  .page-title{ font-size:17px; font-weight:800; text-align:center; }
-  .page-header.with-back .page-title{ flex:1; text-align:left; }
-  .icon-btn{ width:34px; height:34px; border-radius:10px; border:none; background:transparent; color:var(--accent); font-size:20px; display:flex; align-items:center; justify-content:center; cursor:pointer; padding:0; }
-  .icon-btn svg{ width:22px; height:22px; }
-
-  /* ---- placeholder pages (分析／明細／我的 — not built yet) ---- */
-  .placeholder-inner{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; padding:60px 30px; text-align:center; color:var(--muted); }
-  .placeholder-inner .placeholder-icon{ font-size:38px; }
-  .placeholder-inner .placeholder-title{ font-size:16px; font-weight:700; color:var(--text); }
-  .placeholder-inner .placeholder-sub{ font-size:12.5px; line-height:1.6; }
-
-  .my-profile-hero{ position:relative; z-index:0; min-height:164px; box-sizing:border-box; overflow:visible; background:linear-gradient(180deg,#44adb5 0%,var(--accent) 100%); color:#fff; border-radius:0 0 50% 50% / 0 0 10px 10px; }.my-profile-hero .page-header{ min-height:50px; padding:6px 16px 4px; }.my-profile-hero .page-title{ color:#fff; font-size:17px; }
-  .my-book-button{ width:100%; margin:4px 0 0; display:flex; flex-direction:column; align-items:center; gap:6px; padding:0; border:0; background:transparent; color:#fff; text-align:center; font:inherit; cursor:pointer; }.my-book-button:active{ transform:scale(.985); opacity:.86; }.my-book-mark{ width:46px; height:46px; display:grid; place-items:center; border:2px solid var(--book-color,#06b6d4); border-radius:50%; background:#fff !important; color:var(--book-color,#06b6d4); flex:0 0 auto; box-shadow:0 3px 8px rgba(17,67,70,.13); }.my-book-mark svg{ width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round; }.my-book-copy{ min-width:0; }.my-book-kicker{ display:none; }.my-book-name{ display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:16px; font-weight:740; letter-spacing:-.018em; }.my-book-chevron{ display:none; }
-  .my-content{ position:relative; z-index:1; margin-top:-13px; padding:0 16px 24px; }.my-pair-card{ overflow:hidden; margin:0; border:1px solid rgba(154,105,15,.10); border-radius:15px; background:radial-gradient(circle at 96% 112%,rgba(255,255,255,.3) 0 17%,transparent 18%),linear-gradient(135deg,#f3b64d 0%,#f6c669 60%,#f7d183 100%); padding:11px 13px; color:#fff; box-shadow:0 8px 16px rgba(150,103,23,.11); }.my-pair-kicker{ font-size:10px; font-weight:750; color:rgba(82,55,10,.78); }.my-pair-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:3px; }.my-pair-code{ font-size:20px; font-weight:750; letter-spacing:.08em; color:#fff; font-variant-numeric:tabular-nums; text-shadow:0 1px 1px rgba(111,72,10,.12); }.my-copy-btn{ border:1px solid rgba(255,255,255,.62); border-radius:10px; background:rgba(255,255,255,.9); box-shadow:0 1px 3px rgba(123,83,21,.07); padding:6px 9px; color:#a66a08; font:700 11px inherit; cursor:pointer; }.my-pair-hint{ margin:5px 0 0; color:rgba(82,55,10,.74); font-size:9.5px; line-height:1.32; }
-  .my-group{ margin-top:18px; }.my-pair-card + .my-group{ margin-top:22px; }.my-group-title{ margin:0 4px 6px; color:var(--muted); font-size:11px; font-weight:650; }.my-list{ overflow:hidden; border-radius:14px; background:var(--card); }.my-row{ width:100%; min-height:52px; box-sizing:border-box; display:flex; align-items:center; gap:10px; border:0; border-bottom:1px solid var(--border); background:transparent; padding:8px 11px; color:var(--text); text-align:left; font:inherit; cursor:pointer; }.my-row:last-child{ border-bottom:0; }.my-row:active{ background:var(--accent-soft); }.my-row-icon{ width:27px; height:27px; display:grid; place-items:center; border-radius:8px; background:var(--accent-soft); color:var(--accent); flex:0 0 auto; }.my-row-icon svg{ width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }.my-row-icon.danger{ background:var(--danger-soft); color:var(--danger); }.my-row-label{ flex:1; font-size:13px; font-weight:600; }.my-row-value{ max-width:102px; overflow:hidden; color:var(--muted); text-overflow:ellipsis; white-space:nowrap; font-size:11px; font-weight:550; }.my-row-chevron{ color:var(--muted); font-size:18px; font-weight:300; }.my-row.danger .my-row-label{ color:var(--danger); }
-  #mySheet{ padding-left:16px; padding-right:16px; }.my-sheet-head{ display:grid; grid-template-columns:1fr auto 1fr; align-items:center; margin-bottom:16px; }.my-sheet-head .sheet-title{ grid-column:2; margin:0; text-align:center; }.my-sheet-close{ grid-column:3; justify-self:end; border:0; background:transparent; color:var(--accent); padding:4px 0 4px 12px; font:650 14px inherit; cursor:pointer; }.my-sheet-scroll{ max-height:58vh; overflow-y:auto; overflow-x:hidden; scrollbar-width:none; margin:0; padding:8px 3px 10px; }.my-sheet-scroll::-webkit-scrollbar,.picker-list::-webkit-scrollbar{ display:none; }.my-editor-label{ display:block; height:18px; margin:4px 0 8px; color:var(--muted); font-size:12px; font-weight:600; line-height:18px; }.my-sheet-note{ margin:0 0 14px; color:var(--muted); font-size:12px; line-height:1.45; }.my-sheet-actions{ display:grid; gap:8px; margin-top:18px; }.my-sheet-action{ width:100%; min-height:46px; border:0; border-radius:12px; background:var(--accent); color:#fff; font:700 14px inherit; cursor:pointer; }.my-sheet-action.secondary{ background:var(--chip-bg); color:var(--accent); }.my-sheet-action.danger{ background:var(--danger); }.my-setting-option{ width:100%; display:flex; align-items:center; justify-content:space-between; border:0; border-top:1px solid var(--border); background:transparent; padding:14px 2px; color:var(--text); font:600 15px inherit; text-align:left; cursor:pointer; }.my-setting-option:first-child{ border-top:0; }.my-setting-option.active{ color:var(--accent); font-weight:750; }.my-setting-option .check{ color:var(--accent); font-size:18px; }.my-category-row{ display:flex; align-items:center; gap:10px; border-top:1px solid var(--border); padding:11px 2px; }.my-category-row:first-child{ border-top:0; }.my-category-symbol{ width:30px; height:30px; display:grid; place-items:center; border-radius:10px; color:#fff; flex:0 0 auto; }.my-category-symbol svg{ width:17px; height:17px; fill:none; stroke:currentColor; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round; }.my-category-name{ flex:1; border:0; background:transparent; padding:4px 0; color:var(--text); font:600 14px inherit; text-align:left; cursor:pointer; }.my-icon-grid{ display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:8px; padding:2px; }.my-icon-choice{ min-width:0; aspect-ratio:1; display:grid; place-items:center; border:1px solid var(--border); border-radius:12px; background:var(--card); color:var(--muted); cursor:pointer; }.my-icon-choice.active{ border-color:var(--accent); background:var(--accent-soft); color:var(--accent); box-shadow:0 0 0 2px var(--accent-soft); }.my-icon-choice svg{ width:21px; height:21px; fill:none; stroke:currentColor; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round; }.my-color-row{ display:flex; align-items:center; gap:9px; flex-wrap:wrap; }.my-color-choice{ width:30px; height:30px; border:2px solid transparent; border-radius:50%; cursor:pointer; }.my-color-choice.active{ box-shadow:0 0 0 2px var(--card),0 0 0 4px var(--text); }.my-custom-color{ display:flex; align-items:center; gap:9px; margin-top:10px; color:var(--muted); font-size:12px; }.my-custom-color input{ width:34px; height:30px; padding:0; border:1px solid var(--border); border-radius:8px; background:var(--card); }.my-custom-color button{ border:0; border-radius:9px; padding:7px 10px; background:var(--accent-soft); color:var(--accent); font:650 12px inherit; cursor:pointer; }.my-add-inline{ width:100%; border:0; border-top:1px solid var(--border); background:transparent; padding:13px 2px; color:var(--accent); font:650 14px inherit; text-align:left; cursor:pointer; }
-
-  /* 原生 color input 的 swatch 也維持圓形，與上方色票一致。 */
-  .my-custom-color input{ appearance:none; -webkit-appearance:none; width:32px !important; height:32px !important; padding:0; border-radius:50% !important; overflow:hidden; cursor:pointer; }
-  .my-custom-color input::-webkit-color-swatch-wrapper{ padding:3px; }
-  .my-custom-color input::-webkit-color-swatch{ border:0; border-radius:50%; }
-  .bank-group{ margin-bottom:18px; }
-  .bank-group:last-child{ margin-bottom:0; }
-  .list-section-label{ display:flex; align-items:center; gap:8px; padding:4px 4px 10px; }
-  .list-section-label span{ font-size:12px; font-weight:700; color:var(--muted); white-space:nowrap; }
-  .list-section-label .label-line{ flex:1; height:1px; background:var(--border); }
-
-  .bank-header{ display:flex; align-items:center; gap:10px; padding:2px 4px 10px; }
-  .bank-logo{ width:34px; height:34px; border-radius:9px; background:#fff; display:flex; align-items:center; justify-content:center; box-shadow:0 1px 3px rgba(0,0,0,0.14); flex-shrink:0; }
-  .bank-logo svg{ width:22px; height:22px; }
-  .bank-name{ font-size:16px; font-weight:800; color:var(--text); }
-
-  .account-list{ padding:0 16px; display:flex; flex-direction:column; gap:10px; }
-  .account-row{ display:flex; align-items:center; gap:12px; background:var(--card); padding:13px 14px; border-radius:14px; cursor:pointer; transition:background .2s; }
-  .row-icon{ width:40px; height:40px; border-radius:50%; background:var(--chip-bg); border:1px solid var(--border); color:var(--muted); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
-  .row-icon svg{ width:20px; height:20px; }
-  .row-body{ flex:1; min-width:0; }
-  .row-name{ font-size:14px; font-weight:700; }
-  .row-tags{ font-size:11.5px; font-weight:600; color:var(--accent); margin-top:2px; }
-  .row-sub{ font-size:12px; color:var(--muted); margin-top:1px; }
-  .row-amt{ font-size:15px; font-weight:700; font-variant-numeric:tabular-nums; letter-spacing:-0.01em; white-space:nowrap; }
-  .row-amt.cash{ color:var(--success); }
-  .row-amt.credit{ color:var(--danger); }
-
-  .reorder-row{ position:relative; touch-action:none; user-select:none; -webkit-user-select:none; }
-  .drag-handle{ color:var(--muted); font-size:18px; padding:0 2px; cursor:grab; flex-shrink:0; }
-  .reorder-row.dragging{ z-index:5; box-shadow:0 8px 20px rgba(0,0,0,0.18); }
-
-  .form-section{ padding:0 16px; }
-  .field-label{ font-size:12px; font-weight:600; color:var(--muted); margin:20px 0 8px; }
-  .field-input{ width:100%; background:var(--card); border:1px solid var(--border); border-radius:12px; padding:12px 14px; font-size:15px; color:var(--text); font-family:inherit; }
-  .type-toggle{ position:relative; display:flex; background:var(--progress-track); border-radius:12px; padding:3px; touch-action:none; }
-  .type-pill{ position:absolute; top:3px; height:calc(100% - 6px); background:var(--card); border-radius:9px; box-shadow:0 1px 3px rgba(0,0,0,0.12); pointer-events:none; }
-  .type-opt{ position:relative; z-index:1; flex:1; text-align:center; padding:10px 0; font-size:14px; font-weight:600; color:var(--muted); cursor:pointer; user-select:none; }
-  .type-opt.active{ color:var(--text); }
-  .field-select{ width:100%; background:var(--card); border:1px solid var(--border); border-radius:12px; padding:12px 14px; font-size:15px; color:var(--text); font-family:inherit; display:flex; align-items:center; justify-content:space-between; gap:8px; cursor:pointer; }
-  .field-select:active{ background:var(--chip-bg); }
-  .field-select-value{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .field-select-chevron{ width:16px; height:16px; color:var(--muted); flex-shrink:0; }
-  .picker-list{ display:flex; flex-direction:column; max-height:46vh; overflow-y:auto; }
-  .picker-row{ display:flex; align-items:center; gap:10px; padding:13px 2px; border-top:1px solid var(--border); cursor:pointer; }
-  .picker-row:first-child{ border-top:none; }
-  .picker-row:active{ background:var(--chip-bg); }
-  .picker-row .row-icon{ width:32px; height:32px; }
-  .picker-row .row-icon svg{ width:16px; height:16px; }
-  .picker-row-name{ flex:1; font-size:15px; }
-  .picker-check{ width:20px; height:20px; color:var(--accent); flex-shrink:0; visibility:hidden; }
-  .picker-row.selected .picker-check{ visibility:visible; }
-  .save-btn{ width:calc(100% - 32px); margin:24px 16px 0; background:var(--accent); color:#fff; border:none; border-radius:14px; padding:14px; font-size:15px; font-weight:700; font-family:inherit; cursor:pointer; }
-
-  .usage-card{ margin:0 16px 18px; background:var(--card); border-radius:20px; padding:18px; }
-  .usage-label{ font-size:13px; color:var(--muted); font-weight:600; }
-  .usage-amt{ font-size:28px; font-weight:800; letter-spacing:-0.02em; font-variant-numeric:tabular-nums; margin:4px 0 12px; }
-  .usage-sub-row{ display:flex; justify-content:space-between; font-size:12px; color:var(--muted); margin-bottom:8px; }
-  .progress-track{ height:8px; border-radius:4px; background:var(--progress-track); overflow:hidden; }
-  .progress-fill{ height:100%; border-radius:4px; background:var(--accent2); transition:width .4s cubic-bezier(.32,.72,0,1); }
-  .pay-btn{ width:100%; margin-top:16px; background:var(--accent2); color:#fff; border:none; border-radius:14px; padding:13px; font-size:15px; font-weight:700; font-family:inherit; cursor:pointer; }
-  .pay-btn:disabled{ background:var(--progress-track); color:var(--muted); cursor:default; }
-  .statement-card{ margin:0 16px 18px; background:var(--card); border-radius:20px; padding:18px; }
-  .statement-row{ display:flex; justify-content:space-between; align-items:flex-start; }
-  .statement-label{ font-size:13px; color:var(--muted); font-weight:600; }
-  .statement-sub{ font-size:11.5px; color:var(--muted); margin-top:2px; }
-  .statement-amt{ font-size:17px; font-weight:800; font-variant-numeric:tabular-nums; }
-  .statement-due-row{ display:flex; justify-content:space-between; align-items:center; margin-top:14px; padding-top:14px; border-top:1px solid var(--border); font-size:14px; font-weight:600; }
-  .statement-due-amt{ font-size:16px; font-weight:800; font-variant-numeric:tabular-nums; }
-
-  .section-header{ padding:4px 16px 8px; font-size:13px; font-weight:700; color:var(--muted); }
-  .tx-row{ display:flex; align-items:center; justify-content:space-between; padding:11px 16px; border-top:1px solid var(--border); }
-  .tx-row:first-child{ border-top:none; }
-  .tx-name{ font-size:14px; }
-  .tx-cat{ font-size:11px; color:var(--accent); font-weight:600; }
-  .tx-amt{ font-size:14px; font-weight:700; font-variant-numeric:tabular-nums; }
-  .tx-amt.payment{ color:var(--success); }
-
-  .sheet-backdrop{ position:absolute; inset:0; background:var(--sheet-backdrop); opacity:0; pointer-events:none; transition:opacity .25s; z-index:40; }
-  .sheet-backdrop.open{ opacity:1; pointer-events:auto; }
-  .sheet{ position:absolute; left:0; right:0; bottom:0; background:var(--card); border-radius:20px 20px 0 0; padding:20px 18px calc(10px + 34px); transform:translateY(100%); transition:transform .32s cubic-bezier(.32,.72,0,1); z-index:41; }
-  .sheet.open{ transform:translateY(0); }
-  /* 切換主分頁時，先前 sheet 必須立即離開畫面，不能以 transition 殘留在下一頁下方。 */
-  .sheet.is-suppressed{ display:none !important; transition:none; }
-  #pickerSheet{ z-index:43; }
-
-  .confirm-backdrop{ position:absolute; inset:0; background:var(--sheet-backdrop); opacity:0; pointer-events:none; transition:opacity .2s ease; z-index:70; display:flex; align-items:center; justify-content:center; }
-  .confirm-backdrop.open{ opacity:1; pointer-events:auto; }
-  .confirm-alert{ width:270px; background:var(--card); border-radius:14px; text-align:center; transform:scale(0.9); opacity:0; transition:transform .2s cubic-bezier(.32,.72,0,1), opacity .2s ease; }
-  .confirm-backdrop.open .confirm-alert{ transform:scale(1); opacity:1; }
-  .confirm-title{ font-size:15px; font-weight:600; padding:18px 16px; line-height:1.4; }
-  .confirm-actions{ display:flex; border-top:1px solid var(--border); }
-  .confirm-actions button{ flex:1; border:none; background:none; padding:12px 0; font-size:16px; font-family:inherit; cursor:pointer; color:var(--accent); }
-  .confirm-actions button:active{ background:var(--chip-bg); }
-  .confirm-actions button + button{ border-left:1px solid var(--border); }
-  .confirm-actions .confirm-destructive{ color:var(--danger); font-weight:600; }
-  .sheet-title{ font-size:16px; font-weight:800; margin-bottom:16px; }
-  .amount-input-row{ display:flex; align-items:baseline; gap:4px; border-bottom:2px solid var(--accent); padding-bottom:8px; margin-bottom:18px; }
-  .amount-input-row span{ font-size:22px; font-weight:800; color:var(--muted); }
-  .amount-input{ flex:1; border:none; background:transparent; font-size:28px; font-weight:800; font-family:inherit; color:var(--text); font-variant-numeric:tabular-nums; outline:none; }
-  .account-picker{ display:flex; flex-direction:column; gap:8px; margin-bottom:20px; }
-  .account-choice{ display:flex; align-items:center; gap:10px; padding:12px; border-radius:12px; border:1.5px solid var(--border); cursor:pointer; }
-  .account-choice.selected{ border-color:var(--accent); background:var(--accent-soft); }
-  .account-choice .row-icon{ width:32px; height:32px; }
-  .account-choice .row-icon svg{ width:16px; height:16px; }
-  .confirm-btn{ width:100%; background:var(--accent); color:#fff; border:none; border-radius:14px; padding:15px; font-size:15px; font-weight:700; font-family:inherit; cursor:pointer; margin-top:24px; }
-  .confirm-btn:disabled{ opacity:0.4; cursor:not-allowed; }
-  .method-chips{ display:flex; gap:8px; flex-wrap:wrap; }
-  .method-chip{ padding:8px 14px; border-radius:10px; border:1.5px solid var(--border); font-size:13px; font-weight:600; color:var(--muted); cursor:pointer; user-select:none; }
-  .method-chip.active{ border-color:var(--accent); color:var(--accent); background:var(--accent-soft); }
-  .switch-row{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:14px; }
-  .switch-hint{ font-size:12px; color:var(--muted); flex:1; line-height:1.4; }
-  .ios-switch{ position:relative; width:46px; height:28px; border-radius:14px; border:none; background:rgba(120,135,140,0.3); padding:0; cursor:pointer; flex-shrink:0; transition:background .2s; }
-  [data-theme="dark"] .ios-switch{ background:rgba(255,255,255,0.16); }
-  .ios-switch.on{ background:var(--accent); }
-  .ios-switch-knob{ position:absolute; top:2px; left:2px; width:24px; height:24px; border-radius:50%; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,0.3); transition:transform .2s cubic-bezier(.32,.72,0,1); }
-  .ios-switch.on .ios-switch-knob{ transform:translateX(18px); }
-  .delete-btn{ width:100%; background:transparent; color:var(--danger); border:none; padding:14px; font-size:15px; font-weight:600; font-family:inherit; cursor:pointer; margin-top:14px; border-top:1px solid var(--border); padding-top:20px; }
-
-  .swipe-wrap{ position:relative; border-radius:14px; overflow:hidden; }
-  .swipe-action{ position:absolute; top:0; right:0; bottom:0; width:76px; background:var(--danger); color:#fff; border:none; border-radius:14px; font-size:14px; font-weight:700; font-family:inherit; cursor:pointer; display:flex; align-items:center; justify-content:center; }
-  .swipe-content{ position:relative; touch-action:pan-y; }
-
-  .toast{ position:absolute; left:50%; bottom:56px; transform:translateX(-50%) translateY(20px); background:var(--text); color:var(--bg); padding:10px 18px; border-radius:20px; font-size:13px; font-weight:600; opacity:0; transition:opacity .25s, transform .25s; z-index:50; pointer-events:none; }
-  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
-
-  /* ================= 總覽 — ported from overview-toggle-demo.html, variant B
-     (信用卡額度) only: the 淨資產 vs 信用卡額度 A/B comparison was the point
-     of that standalone demo; the user already picked 信用卡額度 as final
-     (plan file §三), so there's no toggle left to carry over here. ================= */
-  .teal-header{ background:var(--accent); padding:28px 16px 40px; color:#fff; transition:background .2s; }
-  .date-row{ display:flex; justify-content:space-between; align-items:flex-start; }
-  .date-big{ font-size:24px; font-weight:800; letter-spacing:-0.01em; }
-  .date-sub{ font-size:12px; opacity:.85; margin-top:4px; }
-  .sync-pill{ background:var(--accent2); color:#fff; border:none; border-radius:20px; padding:9px 16px; font-size:13px; font-weight:700; font-family:inherit; display:flex; align-items:center; gap:6px; cursor:pointer; }
-
-  .hero-card{ margin:-26px 16px 18px; border-radius:20px; overflow:hidden; background:var(--card); box-shadow:0 8px 24px rgba(0,0,0,0.08); position:relative; transition:background .2s; }
-  .hero-top{ padding:20px 18px 18px; background:linear-gradient(180deg, var(--hero-gradient-top) 0%, var(--card) 100%); }
-  .credit-hero-title{ font-size:13px; color:var(--muted); font-weight:600; }
-  .credit-hero-amount{ font-size:30px; font-weight:800; letter-spacing:-0.02em; font-variant-numeric:tabular-nums; color:var(--text); margin:6px 0 10px; }
-  .credit-hero-sub{ display:flex; justify-content:space-between; font-size:12px; color:var(--muted); margin-bottom:8px; }
-  .hero-label-row{ display:flex; justify-content:space-between; align-items:center; }
-  .hero-label{ font-size:14px; font-weight:600; color:var(--text); }
-  .hero-chevron{ color:var(--muted); font-size:18px; }
-  .hero-amount{ font-size:32px; font-weight:800; letter-spacing:-0.02em; font-variant-numeric:tabular-nums; margin-top:6px; }
-  .hero-body{ padding:0 18px 18px; }
-
-  .segmented{ position:relative; display:flex; background:var(--seg-track); border-radius:12px; padding:3px; touch-action:none; margin-bottom:14px; }
-  .seg-pill{ position:absolute; top:3px; height:calc(100% - 6px); background:var(--seg-pill); border-radius:9px; box-shadow:var(--seg-pill-shadow); pointer-events:none; }
-  .seg-opt{ position:relative; z-index:1; flex:1; text-align:center; padding:9px 0; font-size:14px; font-weight:600; color:var(--muted); cursor:pointer; user-select:none; -webkit-tap-highlight-color:transparent; transition:color .15s; }
-  .seg-opt.active{ color:var(--text); }
-  /* 分析頁的兩個切換器是圖表的輔助控制，不應與內容同寬；縮為緊湊的浮層控制。 */
-  #pageAnalysis .segmented{ width:min(100%,280px); margin:0 auto 14px; border-radius:10px; }
-  #pageAnalysis .seg-pill{ border-radius:7px; box-shadow:0 1px 2px rgba(0,0,0,.12),0 2px 5px rgba(0,0,0,.07); }
-  #pageAnalysis .seg-opt{ padding:7px 0; font-size:13px; font-weight:600; }
-
-  .list-viewport{ position:relative; overflow:hidden; transition:height .32s cubic-bezier(.32,.72,0,1); }
-  .list-panel{ position:absolute; top:0; left:0; width:100%; transition:transform .32s cubic-bezier(.32,.72,0,1), opacity .32s cubic-bezier(.32,.72,0,1); }
-  .list-panel.static-flow{ position:static; }
-
-  .summary-row{ display:flex; align-items:center; gap:10px; padding:10px 2px 14px; }
-  .summary-icon{ width:40px; height:40px; border-radius:11px; background:var(--accent-soft); display:flex; align-items:center; justify-content:center; color:var(--accent); flex-shrink:0; }
-  .summary-icon svg{ width:20px; height:20px; }
-  .summary-text{ flex:1; display:flex; flex-direction:column; align-items:flex-end; }
-  .summary-label{ font-size:11px; color:var(--muted); font-weight:600; margin-bottom:2px; }
-  .summary-amt{ font-size:20px; font-weight:800; font-variant-numeric:tabular-nums; letter-spacing:-0.01em; }
-
-  .plain-row{ display:flex; align-items:center; justify-content:space-between; padding:13px 2px; border-top:1px solid var(--border); font-size:14px; }
-  .plain-row .name{ color:var(--text); }
-  .plain-amt{ font-weight:700; font-variant-numeric:tabular-nums; }
-
-  .mode-assets .summary-amt, .mode-assets .plain-amt{ color:var(--success); }
-  .mode-liabilities .summary-amt, .mode-liabilities .plain-amt{ color:var(--text); }
-
-  /* ================= 底部導覽 — ported verbatim from tabbar-morph-demo3.html's
-     already-approved liquid-glass morph nav, just re-homed from a fixed
-     full-viewport safe-zone to one anchored inside .device-screen so it lives
-     inside the phone frame instead of the browser window. ================= */
-  .safe-zone{
-    position:absolute; left:0; right:0; bottom:8px; height:84px;
-    display:flex; align-items:center; justify-content:center;
-    pointer-events:none; z-index:22;
-  }
-  .safe-zone > *{ pointer-events:auto; }
-
-  .tabbar{
-    position:relative;
-    background:var(--bar-surface);
-    backdrop-filter:blur(20px) saturate(180%);
-    -webkit-backdrop-filter:blur(20px) saturate(180%);
-    box-shadow:var(--bar-shadow);
-    border:1px solid var(--bar-border);
-    display:flex; align-items:center; justify-content:space-around;
-    padding:0 6px;
-    touch-action:none;
-    transition:background .2s, border-color .2s, box-shadow .2s;
-  }
-  .tab{
-    position:relative; z-index:2;
-    display:flex; flex-direction:column; align-items:center; justify-content:center;
-    gap:3px; flex:1; height:100%; color:var(--muted); cursor:pointer;
-    -webkit-tap-highlight-color:transparent; user-select:none;
-  }
-  .tab svg{width:22px;height:22px;}
-  .tab span{font-size:10px;font-weight:700;}
-  .tab.active{color:var(--accent);}
-  .tab.active svg{color:var(--accent);}
-
-  .indicator{ position:absolute; top:6px; height:calc(100% - 12px); z-index:1; pointer-events:none; }
-  .indicator-glass{ position:absolute; inset:0; border-radius:inherit; overflow:hidden; }
-  .indicator-fill{ position:absolute; inset:0; border-radius:inherit; background:var(--ind-fill); transition:background .2s; }
-  .indicator-specular{
-    position:absolute; inset:0; border-radius:inherit; pointer-events:none;
-    box-shadow:
-      inset 0 1px 1px var(--ind-specular-top),
-      inset 0 -3px 4px var(--ind-specular-bottom);
-    transition:box-shadow .2s;
-  }
-  .indicator-specular::before{
-    content:''; position:absolute; inset:0; border-radius:inherit; padding:1.1px;
-    background: conic-gradient(from 215deg,
-      var(--ind-rim-bright) 0deg,
-      rgba(255,255,255,0.05) 55deg,
-      rgba(255,255,255,0) 150deg,
-      rgba(255,255,255,0) 255deg,
-      var(--ind-rim-mid) 325deg,
-      var(--ind-rim-bright) 360deg);
-    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor; mask-composite: exclude;
-    mix-blend-mode: plus-lighter;
-    transition:background .2s;
-  }
-
-  /* --- 分析頁 (merged from analysis-demo.html) --- */
-  .top-tabs{ position:relative; display:flex; padding:0 16px; border-bottom:1px solid var(--border); flex-shrink:0; }
-  .top-tab{ flex:1; text-align:center; padding:9px 0 12px; font-size:14.5px; font-weight:700; color:var(--muted); cursor:pointer; user-select:none; -webkit-tap-highlight-color:transparent; transition:color .15s ease-out; }
-  .top-tab.active{ color:var(--accent); }
-  .top-tab:active{ opacity:.6; }
-  .top-tab-indicator{ position:absolute; left:0; bottom:-1px; height:2.5px; background:var(--accent); border-radius:2px; pointer-events:none; will-change:transform,width; }
-
-  .tab-panel{ display:none; }
-  .tab-panel.visible{ display:block; }
-
-  .section{ padding:0 16px; margin-top:20px; }
-  .section-title{ font-size:15.5px; font-weight:800; letter-spacing:-0.01em; }
-  .section-title-row{ display:flex; align-items:center; justify-content:space-between; }
-  .section-sub{ font-size:12.5px; color:var(--muted); margin-top:2px; }
-  .card{ background:var(--card); border-radius:16px; padding:16px; margin-top:10px; box-shadow:0 1px 2px rgba(0,0,0,0.04); }
-
-  .stat-row{ display:flex; justify-content:space-between; align-items:center; padding:11px 0; }
-  .stat-row + .stat-row{ border-top:1px solid var(--border); }
-  .stat-label{ font-size:14px; font-weight:600; }
-  .stat-amt{ font-size:17px; font-weight:800; font-variant-numeric:tabular-nums; letter-spacing:-0.01em; }
-  .stat-amt.income{ color:var(--success); }
-  .stat-amt.negative{ color:var(--danger); }
-
-  .donut-wrap{ position:relative; width:196px; height:196px; margin:14px auto 6px; -webkit-tap-highlight-color:transparent; }
-  .donut-center{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; pointer-events:none; }
-  .donut-center-label{ font-size:11.5px; color:var(--muted); font-weight:600; transition:opacity .15s ease-out; }
-  .donut-center-value{ font-size:20px; font-weight:800; letter-spacing:-0.01em; font-variant-numeric:tabular-nums; transition:opacity .15s ease-out; }
-  .donut-center-pct{ font-size:12px; font-weight:700; color:var(--accent); margin-top:1px; transition:opacity .15s ease-out; }
-  .donut-slice{ cursor:pointer; transition:opacity .18s ease-out; }
-  .donut-slice:active{ opacity:.75; }
-  .donut-empty{ text-align:center; padding:36px 0; color:var(--muted); font-size:13px; }
-
-  .legend-list{ margin-top:6px; }
-  .legend-row{ display:flex; align-items:center; gap:9px; padding:9px 4px; font-size:13px; cursor:pointer; -webkit-tap-highlight-color:transparent; border-radius:9px; transition:background .15s, opacity .18s; }
-  .legend-row:active{ background:var(--accent-soft); }
-  .legend-dot{ width:9px; height:9px; border-radius:50%; flex-shrink:0; }
-  .legend-name{ flex:1; font-weight:600; }
-  .legend-pct{ color:var(--muted); width:40px; text-align:right; font-variant-numeric:tabular-nums; }
-  .legend-amt{ font-weight:800; width:76px; text-align:right; font-variant-numeric:tabular-nums; }
-  .legend-row.dim{ opacity:.35; }
-
-  .trend-head-row{ display:flex; align-items:stretch; margin:14px 0 16px; }
-  .trend-head-col{ flex:1; }
-  .trend-head-col + .trend-head-col{ border-left:1px solid var(--border); padding-left:14px; margin-left:14px; }
-  .trend-head-label{ font-size:11.5px; color:var(--muted); font-weight:600; }
-  .trend-head-value{ font-size:17px; font-weight:800; margin-top:4px; letter-spacing:-0.01em; font-variant-numeric:tabular-nums; }
-  #trendChart{ width:100%; height:auto; display:block; }
-  .trend-dot{ transition:r .15s ease-out; }
-  .trend-dot.active{ r:5; }
-
-  .link-btn{ color:var(--accent); font-size:13px; font-weight:700; background:none; border:none; cursor:pointer; font-family:inherit; padding:6px 2px; -webkit-tap-highlight-color:transparent; }
-  .link-btn:active{ opacity:.6; }
-
-  .gauge-row{ display:flex; align-items:center; gap:16px; }
-  .gauge{ position:relative; width:68px; height:68px; flex-shrink:0; }
-  .gauge-pct{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:800; }
-  .gauge-info-amt{ font-size:17px; font-weight:800; letter-spacing:-0.01em; }
-  .gauge-info-sub{ font-size:12px; color:var(--muted); margin-top:3px; }
-
-  .list-row{ display:flex; align-items:center; gap:12px; padding:13px 2px; border-top:1px solid var(--border); }
-  .list-row:first-of-type{ border-top:none; }
-  .row-amt-group{ text-align:right; }
-  .row-amt-sub{ font-size:11.5px; color:var(--muted); margin-top:2px; font-variant-numeric:tabular-nums; }
-  .row-sub.ok{ color:var(--success); font-weight:700; }
-  .row-sub.warn{ color:var(--accent2); font-weight:700; }
-/* 明細整合頁：沿用 combined demo 的共用 token，元件樣式全部以 details- 前綴隔離。 */
-#pageList{overflow:hidden;background:var(--bg)}#pageList .details-shell{position:absolute;inset:0;overflow:hidden;background:var(--bg);color:var(--text)}
-#pageList{position:relative;height:100%;padding:0}#pageList .details-shell{position:relative;width:100%;height:100%;inset:auto}
-.details-header{height:58px;padding:8px 14px 8px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center}.details-title{font-size:17px;font-weight:700;text-align:center}.details-tools{display:flex;gap:2px}.details-tools:last-child{justify-content:flex-end}.details-tool{width:32px;height:32px;border:0;border-radius:10px;background:transparent;color:var(--accent);font-size:25px;line-height:1;cursor:pointer}.details-period{position:relative;height:36px;overflow:hidden;font-size:11px;color:var(--muted);font-weight:600}.details-period>button{position:absolute;top:0;height:36px;border:0;background:transparent;color:inherit;font:inherit;white-space:nowrap;cursor:pointer}.details-period-current{left:50%;transform:translateX(-50%);padding:0 8px;color:var(--accent)!important;font-size:14px!important;font-weight:700!important}.details-period>button:first-child{right:calc(50% + 96px)}.details-period>button:nth-child(3){left:calc(50% + 96px)}.details-today{display:none;right:14px;border-radius:999px!important;padding:0 8px;background:var(--accent-soft)!important;color:var(--accent)!important}.details-today.show{display:block}.details-summary{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 16px 8px}.details-summary-card{min-height:70px;border:1px solid transparent;border-radius:11px;background:transparent;color:var(--muted);cursor:pointer}.details-summary-card span{display:block;font-size:11px;font-weight:600}.details-summary-card strong{display:block;margin-top:4px;font-size:20px;font-weight:600;letter-spacing:-.02em}.details-summary-card.active{background:var(--card);border-color:var(--border);color:var(--text)}.details-summary-card[data-details-mode=income].active strong{color:var(--success)}.details-filter-state{min-height:0;padding:0 16px}.details-filter-state:not(:empty){padding-bottom:8px}.details-filter-chip{display:inline-flex;align-items:center;border:0;border-radius:99px;background:var(--accent-soft);color:var(--accent);padding:5px 9px;font:600 11px inherit;cursor:pointer}.details-content{position:absolute;inset:172px 0 0;overflow:auto;border-radius:20px 20px 0 0;background:var(--card);padding:12px 0 84px}.details-segment{position:relative;display:grid;grid-template-columns:1fr 1fr;margin:0 24px 14px;padding:3px;border-radius:99px;background:var(--input-bg)}.details-segment span{position:absolute;z-index:0;top:3px;bottom:3px;left:3px;width:calc(50% - 3px);border:1px solid var(--border);border-radius:99px;background:var(--card);box-shadow:0 1px 2px #00000014;transition:transform .25s cubic-bezier(.2,.8,.2,1)}.details-segment[data-tab=detail] span{transform:translateX(100%)}.details-segment button{position:relative;z-index:1;border:0;background:transparent;border-radius:99px;padding:7px 0;color:var(--muted);font:600 12px inherit;cursor:pointer}.details-segment button.active{color:var(--text)}.details-section-title{margin:0 24px 8px;font-size:15px;font-weight:700}.details-month-title{padding:8px 24px;border-block:1px solid var(--border);background:color-mix(in srgb,var(--bg) 72%,var(--card));font-size:14px;font-weight:600}.details-rows{padding:0 12px}.details-tx{display:grid;grid-template-columns:46px minmax(0,1fr) auto;gap:9px;align-items:center;width:100%;padding:12px;border:0;border-bottom:1px solid var(--border);background:transparent;color:inherit;text-align:left;cursor:pointer}.details-date{color:var(--muted);font-size:12px;line-height:1.2;text-align:center;font-weight:600}.details-cat{color:var(--accent);font-size:12px;font-weight:600}.details-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:15px;font-weight:500}.details-meta{margin-top:4px;color:var(--muted);font-size:10px}.details-badge{margin-right:5px;border-radius:4px;background:var(--input-bg);padding:2px 4px}.details-amount{font-size:15px;font-weight:600;white-space:nowrap}.details-income{color:var(--success)}.details-category-list{padding:0 24px}.details-category-row{display:grid;grid-template-columns:45px minmax(0,1fr) auto;column-gap:9px;align-items:center;width:100%;padding:11px 0 18px;border:0;background:transparent;color:inherit;text-align:left;cursor:pointer}.details-cat-icon{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;color:#fff;font-size:18px}.details-cat-name{font-size:15px;font-weight:700}.details-cat-count{margin-left:6px;color:var(--muted);font-size:10px}.details-cat-amount{font-size:15px;font-weight:600}.details-bar{grid-column:2/-1;display:flex;align-items:center;gap:8px;margin-top:3px}.details-percent{width:48px;font-size:11px;font-weight:700}.details-track{flex:1;height:7px;overflow:hidden;border-radius:99px;background:var(--input-bg)}.details-fill{height:100%;border-radius:99px;background:var(--accent2)}.details-note{margin:-3px 24px 12px;color:var(--muted);font-size:10px}.details-fab{position:absolute;right:20px;bottom:86px;z-index:5;width:52px;height:52px;border:0;border-radius:50%;background:var(--accent2);color:#fff;font-size:30px;line-height:1;box-shadow:0 8px 18px #f5a62355;cursor:pointer}.details-backdrop{position:absolute;z-index:10;inset:0;display:none;background:#0f181c38;backdrop-filter:blur(2px)}.details-backdrop.open{display:block}.details-popover,.details-filter-popover{position:absolute;z-index:11;top:104px;width:230px;display:none;padding:16px;border-radius:22px;background:color-mix(in srgb,var(--card) 92%,transparent);box-shadow:0 16px 35px #0003;backdrop-filter:blur(20px)}.details-popover{left:14px}.details-filter-popover{right:14px}.details-popover.open,.details-filter-popover.open{display:block}.details-popover h3,.details-filter-popover h3{margin:0 0 10px;text-align:center;font-size:16px}.details-popover>button,.details-filter-popover>button{width:100%;margin-top:7px;border:0;border-radius:12px;background:var(--input-bg);padding:11px;color:inherit;text-align:left;font:600 14px inherit;cursor:pointer}.details-popover>button.active,.details-filter-popover>button.active{background:var(--accent-soft);color:var(--accent)}.details-filter-popover>div{display:flex;gap:7px;margin-top:10px}.details-filter-popover>div button{flex:1;border:0;border-radius:10px;padding:10px;font:600 12px inherit}.details-filter-popover>div button:last-child{background:var(--accent);color:#fff}.details-custom label{display:block;margin-top:9px;font-size:11px;font-weight:700}.details-custom input{width:100%;margin-top:4px;border:0;border-radius:9px;background:var(--input-bg);padding:9px;color:inherit}.details-custom button{width:100%;margin-top:10px;border:0;border-radius:10px;background:var(--accent);padding:10px;color:#fff;font-weight:700}.details-search{position:absolute;z-index:20;inset:0;display:none;background:var(--card)}.details-search.open{display:block}.details-search-top{display:flex;gap:8px;padding:62px 14px 12px;background:var(--accent)}.details-search-top input{flex:1;height:40px;border:0;border-radius:20px;padding:0 14px;background:#fffffff0;color:#182024;font:600 14px inherit;outline:0}.details-search-top button{width:40px;height:40px;border:0;border-radius:50%;background:#62dfe5;color:#163538;font-size:26px}.details-search-results{padding:20px 18px}.details-search-result{display:block;width:100%;padding:12px 0;border:0;border-bottom:1px solid var(--border);background:transparent;color:inherit;text-align:left;font:600 14px inherit}.details-search-result small{display:block;margin-top:4px;color:var(--muted);font-size:11px}.details-sheet,.details-account-sheet{position:absolute;z-index:15;right:0;bottom:0;left:0;display:none;max-height:86%;overflow:auto;padding:9px 18px 26px;border-radius:24px 24px 0 0;background:var(--card);box-shadow:0 -12px 35px #0003}.details-sheet.open,.details-account-sheet.open{display:block}.details-handle{width:36px;height:4px;margin:0 auto 13px;border-radius:99px;background:var(--border)}.details-sheet-title{display:grid;grid-template-columns:1fr auto 1fr;align-items:center}.details-sheet-title button,.details-account-sheet>button{border:0;background:none;color:var(--accent);font:600 13px inherit}.details-sheet-title h3,.details-account-sheet h3{margin:0;text-align:center;font-size:17px}.details-type{display:grid;grid-template-columns:1fr 1fr;gap:3px;margin:13px 0 4px;padding:3px;border-radius:10px;background:var(--input-bg)}.details-type button{border:0;border-radius:8px;background:transparent;padding:8px;color:var(--muted);font:600 13px inherit}.details-type button.active{background:var(--card);color:var(--text);box-shadow:0 1px 3px #0002}.details-sheet label{display:block;margin-top:10px;color:var(--muted);font-size:11px;font-weight:700}.details-sheet input,.details-sheet textarea{width:100%;margin-top:5px;border:0;border-radius:10px;background:var(--input-bg);padding:10px;color:var(--text);font:600 14px inherit}.details-sheet textarea{min-height:60px;resize:none}.details-two{display:grid;grid-template-columns:1fr 1fr;gap:8px}.details-account-control{display:flex;justify-content:space-between;width:100%;margin-top:5px;border:0;border-radius:10px;background:var(--input-bg);padding:11px;color:var(--text);font:600 14px inherit;text-align:left}.details-category-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin-top:6px}.details-category-choice{border:0;background:transparent;color:var(--muted);font:600 9px inherit}.details-category-choice span{display:grid;place-items:center;width:32px;height:32px;margin:0 auto 3px;border-radius:50%;color:#fff;font-size:15px}.details-category-choice.active{color:var(--text)}.details-category-choice.active span{box-shadow:0 0 0 2px var(--card),0 0 0 4px var(--accent)}.details-tip-row{display:flex;gap:6px;margin-top:5px}.details-tip-row button{border:0;border-radius:9px;background:var(--input-bg);padding:8px 10px;color:var(--muted);font:600 11px inherit}.details-tip-row button.active{background:var(--accent-soft);color:var(--accent)}.details-suggestions{display:flex;gap:6px;overflow:auto;margin-top:5px}.details-suggestion{flex:none;border:1px solid var(--border);border-radius:10px;background:var(--card);padding:6px 8px;color:inherit;text-align:left;font:600 10px inherit}.details-suggestion small{display:block;color:var(--muted);font-size:9px}.details-total{text-align:right;margin-top:7px;font-size:12px;font-weight:700}.details-item-row{display:grid;grid-template-columns:1fr 70px 25px;gap:5px;margin-top:5px}.details-item-row button{border:0;background:none;color:var(--danger);font-size:18px}.details-secondary,.details-save{width:100%;margin-top:7px;border:0;border-radius:10px;padding:10px;font:700 13px inherit}.details-secondary{background:var(--input-bg);color:var(--accent)}.details-save{margin-top:15px;background:var(--accent);color:#fff}.details-account-choice{display:flex;justify-content:space-between;width:100%;border:0;border-bottom:1px solid var(--border);background:transparent;padding:15px 5px;color:inherit;text-align:left;font:600 14px inherit}.details-account-choice.active{color:var(--accent)}
-#pageList{position:absolute;inset:62px 0 0;height:auto;padding:0;overflow:hidden}
-#detailsApprovedFrame{display:block;width:100%;height:100%;border:0;background:var(--bg)}
-</style>
-</head>
-<body>
-
-<div class="toolbar">
-  <button id="btnHeroVariantA" type="button">總覽變體 A：淨資產</button>
-  <button id="btnHeroVariantB" class="active" type="button">總覽變體 B：信用卡額度</button>
-  <button id="themeToggle" type="button">🌙 深色</button>
-</div>
-
-<div class="device-frame">
-<div class="device-screen">
-
-  <div class="status-bar">
-    <span>9:41</span>
-    <span class="status-icons">
-      <svg width="18" height="12" viewBox="0 0 18 12" fill="none"><rect x="0" y="7" width="3" height="5" rx="0.8" fill="currentColor"/><rect x="5" y="5" width="3" height="7" rx="0.8" fill="currentColor"/><rect x="10" y="3" width="3" height="9" rx="0.8" fill="currentColor"/><rect x="15" y="0" width="3" height="12" rx="0.8" fill="currentColor"/></svg>
-      <svg width="16" height="12" viewBox="0 0 16 12" fill="none"><path d="M8 9.5a1.3 1.3 0 1 1 0 2.6 1.3 1.3 0 0 1 0-2.6Z" fill="currentColor"/><path d="M4.8 6.8a4.6 4.6 0 0 1 6.4 0" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" fill="none"/><path d="M2 4a8.6 8.6 0 0 1 12 0" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" fill="none"/></svg>
-      <svg width="25" height="12" viewBox="0 0 25 12" fill="none"><rect x="0.75" y="0.75" width="20.5" height="10.5" rx="2.5" stroke="currentColor" stroke-width="1.2"/><rect x="2.3" y="2.3" width="17.4" height="7.4" rx="1.3" fill="currentColor"/><path d="M22.5 4v4a1.6 1.6 0 0 0 1-1.5V5.5A1.6 1.6 0 0 0 22.5 4Z" fill="currentColor" opacity="0.5"/></svg>
-    </span>
-  </div>
-  <div class="dynamic-island"></div>
-
-  <div class="phone">
-
-  <!-- ================= PAGE: 總覽 ================= -->
-  <div class="screen visible" id="pageOverview">
-    <div class="teal-header">
-      <div class="date-row">
-        <div>
-          <div class="date-big" id="ovDateBig">9月7日(一)</div>
-          <div class="date-sub">上次同步 6 小時前</div>
-        </div>
-        <button class="sync-pill" id="ovSyncBtn" type="button">⇩ 同步</button>
-      </div>
-    </div>
-
-    <div class="hero-card">
-      <div class="hero-top">
-        <!-- 變體 A：淨資產 -->
-        <div id="ovVariantA" style="display:none;">
-          <div class="hero-label-row">
-            <span class="hero-label">淨資產</span>
-            <span class="hero-chevron">›</span>
-          </div>
-          <div class="hero-amount" id="ovNetWorth" style="color:var(--success);">$0.00</div>
-        </div>
-        <!-- 變體 B：信用卡額度 -->
-        <div id="ovVariantB">
-          <div class="credit-hero-title" id="ovHeroTitle">信用卡・本期已刷</div>
-          <div class="credit-hero-amount" id="ovHeroAmt">$93.76</div>
-          <div class="credit-hero-sub" id="ovHeroSub"><span>額度 $600.00</span><span>剩餘 $506.24</span></div>
-          <div class="progress-track" id="ovProgressWrap"><div class="progress-fill" id="ovProgressFill" style="width:15.63%;"></div></div>
-        </div>
-      </div>
-
-      <div class="hero-body">
-        <div class="segmented" id="ovSegmented">
-          <div class="seg-pill" id="ovSegPill"></div>
-          <div class="seg-opt active" data-i="0">資產</div>
-          <div class="seg-opt" data-i="1">負債</div>
-        </div>
-
-        <div class="list-viewport" id="ovListViewport">
-          <div class="list-panel static-flow mode-assets" id="ovPanelAssets">
-            <div class="summary-row">
-              <div class="summary-icon">
-                <svg viewBox="0 0 24 24">
-                  <rect x="2" y="6" width="20" height="13" rx="3" fill="currentColor"/>
-                  <rect x="2" y="6" width="20" height="4.5" rx="3" fill="currentColor" opacity="0.55"/>
-                  <circle cx="16.5" cy="13" r="2" fill="#fff"/>
-                </svg>
-              </div>
-              <div class="summary-text">
-                <div class="summary-label">資產總額</div>
-                <div class="summary-amt" id="ovAssetTotal">$0.00</div>
-              </div>
-            </div>
-            <div id="ovAssetRows"></div>
-          </div>
-          <div class="list-panel mode-liabilities" id="ovPanelLiabilities" style="transform:translateX(100%); opacity:0; position:absolute;">
-            <div class="summary-row">
-              <div class="summary-icon">
-                <svg viewBox="0 0 24 24">
-                  <rect x="2" y="5" width="20" height="14" rx="3" fill="currentColor"/>
-                  <rect x="2" y="9" width="20" height="3" fill="#fff"/>
-                  <rect x="5" y="15" width="7" height="1.6" rx="0.8" fill="#fff" opacity="0.85"/>
-                </svg>
-              </div>
-              <div class="summary-text">
-                <div class="summary-label">負債總額</div>
-                <div class="summary-amt" id="ovLiabilityTotal">$0.00</div>
-              </div>
-            </div>
-            <div id="ovLiabilityRows"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ================= PAGE: 帳戶 ================= -->
-  <div class="screen" id="pageAccounts">
-
-    <!-- SCREEN: 帳戶主頁 -->
-    <div class="screen visible" id="screenList">
-      <div class="page-header">
-        <button class="icon-btn" id="gearBtn" title="帳戶設定">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
-        </button>
-        <div class="page-title">帳戶</div>
-        <div style="display:flex;align-items:center;gap:2px;">
-          <button class="icon-btn" id="syncBtn" title="與另一半同步">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19a4.5 4.5 0 0 0 0-9 6 6 0 0 0-11.6-1.9A4.5 4.5 0 0 0 6.5 19h11Z"/><path d="M12 12v5m0-5-2 2m2-2 2 2" /></svg>
-          </button>
-          <button class="icon-btn" id="addBtnTop" title="新增帳戶" style="font-size:26px;font-weight:400;">＋</button>
-        </div>
-      </div>
-      <div class="account-list" id="accountList"></div>
-    </div>
-
-    <!-- SCREEN: 帳戶設定(排序) -->
-    <div class="screen" id="screenSettings">
-      <div class="page-header with-back">
-        <button class="icon-btn" onclick="showScreen('list')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
-        </button>
-        <div class="page-title">帳戶設定</div>
-      </div>
-      <div class="section-header">手動新增</div>
-      <div class="account-list" id="settingsList"></div>
-    </div>
-
-    <!-- SCREEN: 新增帳戶 -->
-    <div class="screen" id="screenAdd">
-      <div class="page-header with-back">
-        <button class="icon-btn" onclick="showScreen('list')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
-        </button>
-        <div class="page-title">新增帳戶</div>
-      </div>
-      <div class="form-section">
-        <div class="field-label" style="margin-top:0;">類型</div>
-        <div class="type-toggle" id="typeToggle">
-          <div class="type-pill" id="typePill"></div>
-          <div class="type-opt active" data-type="cash">現金</div>
-          <div class="type-opt" data-type="bank">銀行帳戶</div>
-          <div class="type-opt" data-type="credit">信用卡</div>
-        </div>
-
-        <div id="bankFieldRow" style="display:none;">
-          <div class="field-label">所屬銀行</div>
-          <div class="field-select" id="bankSelect" data-value="">
-            <span class="field-select-value"></span>
-            <svg class="field-select-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
-          </div>
-        </div>
-
-        <div class="field-label">帳戶名稱</div>
-        <input class="field-input" id="newAccName" placeholder="例如:旅遊基金" />
-
-        <div id="methodFields" style="display:none;">
-          <div class="field-label">支援的付款方式</div>
-          <div class="method-chips" id="methodChips"></div>
-        </div>
-        <div id="balanceFields">
-          <div class="field-label">目前餘額</div>
-          <input class="field-input" id="newAccBalance" placeholder="$0" inputmode="decimal" />
-        </div>
-        <div id="creditFields" style="display:none;">
-          <div class="field-label">額度</div>
-          <input class="field-input" id="newCreditLimit" placeholder="$0" inputmode="decimal" />
-          <div class="field-label">結帳日</div>
-          <input class="field-input" id="newClosingDay" placeholder="例如 3" inputmode="numeric" />
-          <div class="field-label">掛在哪個帳戶底下</div>
-          <div class="field-select" id="linkedAccountSelect" data-value="">
-            <span class="field-select-value"></span>
-            <svg class="field-select-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
-          </div>
-        </div>
-      </div>
-      <button class="save-btn" id="saveAccountBtn">儲存</button>
-    </div>
-
-    <!-- SCREEN: 信用卡詳情 -->
-    <div class="screen" id="screenDetail">
-      <div class="page-header with-back">
-        <button class="icon-btn" onclick="showScreen('list')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
-        </button>
-        <div class="page-title">信用卡</div>
-        <button class="icon-btn" id="editCreditBtn" title="編輯帳戶">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.83 2.83 0 0 1 4 4L7 21l-4 1 1-4Z"/></svg>
-        </button>
-      </div>
-
-      <div class="usage-card">
-        <div class="usage-label">總計使用額度</div>
-        <div class="usage-amt" id="usageAmt">$93.76</div>
-        <div class="usage-sub-row"><span id="limitAmt">額度 $600</span><span id="availableAmt">可用 $506.24</span></div>
-        <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:15.63%;"></div></div>
-      </div>
-
-      <div class="statement-card">
-        <div class="statement-row">
-          <div>
-            <div class="statement-label">未出帳金額</div>
-            <div class="statement-sub" id="closingDaySub">25日結帳</div>
-          </div>
-          <div class="statement-amt" id="unbilledAmt">-$68.94</div>
-        </div>
-        <div class="statement-due-row" id="statementDueRow">
-          <div>本期帳單</div>
-          <div class="statement-due-amt" id="billedAmt">$24.82</div>
-        </div>
-        <button class="pay-btn" id="payBtn">繳清本期帳單</button>
-      </div>
-
-      <div class="section-header">交易明細</div>
-      <div id="creditTxList"></div>
-    </div>
-
-  </div>
-
-  <!-- ================= PAGE: 分析 (未完成的頁面) ================= -->
-  <div class="screen" id="pageAnalysis">
-    <div class="page-header"><div class="page-title">分析</div></div>
-
-    <div class="top-tabs" id="topTabs">
-      <div class="top-tab active" data-tab="ie">收支</div>
-      <div class="top-tab" data-tab="bills">帳單</div>
-      <div class="top-tab" data-tab="debt">債務</div>
-      <div class="top-tab-indicator" id="topTabIndicator"></div>
-    </div>
-
-    <div class="tab-panel visible" id="panelIe">
-      <div class="section">
-        <div class="section-title">本月總收支</div>
-        <div class="card">
-          <div class="stat-row"><div class="stat-label">結餘</div><div class="stat-amt" id="statBalance">$0.00</div></div>
-          <div class="stat-row"><div class="stat-label">收入</div><div class="stat-amt income" id="statIncome">$0.00</div></div>
-          <div class="stat-row"><div class="stat-label">支出</div><div class="stat-amt" id="statExpense">$0.00</div></div>
-        </div>
-      </div>
-
-      <div class="section">
-        <div class="section-title">本月分類</div>
-        <div class="card">
-          <div class="segmented" id="ieSegmented">
-            <div class="seg-pill" id="ieSegPill"></div>
-            <div class="seg-opt" data-i="0">收入</div>
-            <div class="seg-opt active" data-i="1">支出</div>
-          </div>
-          <div id="donutArea"></div>
-        </div>
-      </div>
-
-      <div class="section">
-        <div class="section-title">近半年趨勢</div>
-        <div class="card">
-          <div class="segmented" id="trendSegmented">
-            <div class="seg-pill" id="trendSegPill"></div>
-            <div class="seg-opt" data-i="0">收入</div>
-            <div class="seg-opt" data-i="1">支出</div>
-            <div class="seg-opt active" data-i="2">結餘</div>
-          </div>
-          <div class="trend-head-row">
-            <div class="trend-head-col">
-              <div class="trend-head-label" id="trendMonthLabel">本月</div>
-              <div class="trend-head-value" id="trendMonthValue">$0.00</div>
-            </div>
-            <div class="trend-head-col">
-              <div class="trend-head-label">比前一月</div>
-              <div class="trend-head-value" id="trendDeltaValue">+$0.00</div>
-            </div>
-          </div>
-          <svg id="trendChart" viewBox="0 0 320 148"></svg>
-        </div>
-      </div>
-    </div>
-
-    <div class="tab-panel" id="panelBills">
-      <div class="section">
-        <div class="section-title-row">
-          <div class="section-title">信用卡帳單</div>
-          <div class="link-btn" id="goPayBtn">前往繳費 ›</div>
-        </div>
-        <div class="card">
-          <div class="stat-row"><div class="stat-label">待繳（已出帳）</div><div class="stat-amt" id="billUnpaid">$0.00</div></div>
-          <div class="stat-row"><div class="stat-label">未出帳</div><div class="stat-amt" id="billUnbilled">$0.00</div></div>
-        </div>
-      </div>
-      <div class="section">
-        <div class="section-title">卡片明細</div>
-        <div class="card" id="billCardList"></div>
-      </div>
-    </div>
-
-    <div class="tab-panel" id="panelDebt">
-      <div class="section">
-        <div class="card">
-          <div class="gauge-row">
-            <div class="gauge">
-              <svg width="68" height="68" viewBox="0 0 68 68">
-                <circle cx="34" cy="34" r="28" fill="none" stroke="var(--seg-track)" stroke-width="8"/>
-                <circle id="gaugeArc" cx="34" cy="34" r="28" fill="none" stroke="var(--accent2)" stroke-width="8" stroke-linecap="round" transform="rotate(-90 34 34)"/>
-              </svg>
-              <div class="gauge-pct" id="gaugePct">0%</div>
-            </div>
-            <div>
-              <div class="gauge-info-amt" id="gaugeAmt">$0.00 / $0.00</div>
-              <div class="gauge-info-sub" id="gaugeSub">0 張信用卡</div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="section">
-        <div class="section-title">信用卡明細</div>
-        <div class="card" id="debtCardList"></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ================= PAGE: 明細 ================= -->
-  <div class="screen" id="pageList">
-    <iframe id="detailsApprovedFrame" title="明細" src="details-demo.html?embed=1"></iframe>
-  </div>
-
-  <!-- ================= PAGE: 我的 (未完成的頁面) ================= -->
-  <div class="screen" id="pageMe">
-    <div class="my-profile-hero">
-      <div class="page-header"><div class="page-title">我的</div></div>
-      <button class="my-book-button" id="myEditBook" type="button" aria-label="編輯帳本">
-        <span class="my-book-mark" id="myBookIcon"></span>
-        <span class="my-book-copy"><span class="my-book-kicker">目前帳本</span><span class="my-book-name" id="myBookName">我的帳本</span></span>
-        <span class="my-book-chevron">›</span>
-      </button>
-    </div>
-    <div class="my-content">
-      <section class="my-pair-card" aria-label="共享帳本配對代碼">
-        <div class="my-pair-kicker">共享帳本代碼</div>
-        <div class="my-pair-row"><strong class="my-pair-code" id="myPairCode">000 000</strong><button class="my-copy-btn" id="myCopyCode" type="button">複製代碼</button></div>
-        <p class="my-pair-hint">分享代碼給另一位使用者；Firebase 串接後，兩台手機會同步這份帳本。</p>
-      </section>
-      <section class="my-group"><h2 class="my-group-title">帳本設定</h2><div class="my-list">
-        <button class="my-row" id="myJoinBook" type="button"><span class="my-row-icon" data-icon="link"></span><span class="my-row-label">加入共享帳本</span><span class="my-row-chevron">›</span></button>
-        <button class="my-row" id="myAppearance" type="button"><span class="my-row-icon" data-icon="appearance"></span><span class="my-row-label">外觀</span><span class="my-row-value" id="myAppearanceValue">淺色</span><span class="my-row-chevron">›</span></button>
-      </div></section>
-      <section class="my-group"><h2 class="my-group-title">記帳設定</h2><div class="my-list">
-        <button class="my-row" id="myCategories" type="button"><span class="my-row-icon" data-icon="tag"></span><span class="my-row-label">類別管理</span><span class="my-row-chevron">›</span></button>
-        <button class="my-row" id="myPayments" type="button"><span class="my-row-icon" data-icon="card"></span><span class="my-row-label">帳戶與付款方式</span><span class="my-row-value">管理帳戶</span><span class="my-row-chevron">›</span></button>
-        <button class="my-row" id="myTips" type="button"><span class="my-row-icon" data-icon="tip"></span><span class="my-row-label">小費快速預設</span><span class="my-row-value" id="myTipValue">15%、18%、20%</span><span class="my-row-chevron">›</span></button>
-      </div></section>
-      <section class="my-group"><h2 class="my-group-title">資料</h2><div class="my-list">
-        <button class="my-row" id="myBackup" type="button"><span class="my-row-icon" data-icon="download"></span><span class="my-row-label">完整備份</span><span class="my-row-chevron">›</span></button>
-        <button class="my-row" id="myRestore" type="button"><span class="my-row-icon" data-icon="upload"></span><span class="my-row-label">還原備份</span><span class="my-row-chevron">›</span></button>
-        <button class="my-row" id="myExportCsv" type="button"><span class="my-row-icon" data-icon="export"></span><span class="my-row-label">CSV 匯出</span><span class="my-row-chevron">›</span></button>
-        <button class="my-row danger" id="myClear" type="button"><span class="my-row-icon danger" data-icon="trash"></span><span class="my-row-label">清除所有資料</span><span class="my-row-chevron">›</span></button>
-      </div></section>
-    </div>
-  </div>
-
-  </div>
-  <div class="home-indicator"></div>
-
-  <div class="sheet-backdrop" id="sheetBackdrop"></div>
-  <div class="sheet" id="paySheet">
-    <div class="sheet-title">信用卡・繳費</div>
-    <div class="amount-input-row">
-      <span>$</span>
-      <input class="amount-input" id="payAmountInput" type="text" inputmode="decimal" />
-    </div>
-    <div class="field-label" style="margin-top:0;">扣款帳戶</div>
-    <div class="account-picker" id="accountPicker"></div>
-    <button class="confirm-btn" id="confirmPayBtn">確認繳費</button>
-  </div>
-
-  <div class="sheet" id="editSheet">
-    <div class="sheet-title">編輯帳戶・<span id="editAccType"></span></div>
-    <div class="field-label" style="margin-top:0;">帳戶名稱</div>
-    <input class="field-input" id="editAccName" />
-    <div id="editBalanceRow">
-      <div class="field-label">目前餘額</div>
-      <input class="field-input" id="editAccBalance" inputmode="decimal" />
-    </div>
-    <div id="editMethodsRow" style="display:none;">
-      <div class="field-label">支援的付款方式</div>
-      <div class="method-chips" id="editMethodChips"></div>
-    </div>
-    <div id="editCreditFields" style="display:none;">
-      <div class="field-label">額度</div>
-      <input class="field-input" id="editCreditLimit" inputmode="decimal" />
-      <div class="field-label">結帳日</div>
-      <input class="field-input" id="editClosingDay" inputmode="numeric" />
-      <div class="field-label">掛在哪個帳戶底下</div>
-      <div class="field-select" id="editLinkedAccountSelect" data-value="">
-        <span class="field-select-value"></span>
-        <svg class="field-select-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
-      </div>
-      <div class="switch-row">
-        <span class="switch-hint">總覽頁的信用卡額度卡片顯示這張卡(之後有多張信用卡時，只會有一張顯示在總覽)</span>
-        <button type="button" class="ios-switch" id="editPrimaryToggle" role="switch" aria-checked="false">
-          <span class="ios-switch-knob"></span>
-        </button>
-      </div>
-    </div>
-    <button class="confirm-btn" id="saveEditAccountBtn">儲存</button>
-    <button class="delete-btn" id="deleteAccountBtn">刪除帳戶</button>
-  </div>
-
-  <div class="sheet" id="pickerSheet">
-    <div class="sheet-title" id="pickerTitle"></div>
-    <div class="picker-list" id="pickerList"></div>
-  </div>
-
-  <div class="sheet" id="mySheet" aria-live="polite">
-    <div class="my-sheet-head"><div class="sheet-title" id="mySheetTitle"></div><button class="my-sheet-close" id="mySheetClose" type="button">完成</button></div>
-    <div class="my-sheet-scroll" id="mySheetBody"></div>
-  </div>
-  <input id="myRestoreInput" type="file" accept="application/json" hidden />
-
-  <div class="confirm-backdrop" id="confirmBackdrop">
-    <div class="confirm-alert">
-      <div class="confirm-title" id="confirmTitle"></div>
-      <div class="confirm-actions">
-        <button id="confirmCancelBtn">取消</button>
-        <button class="confirm-destructive" id="confirmDeleteBtn">刪除</button>
-      </div>
-    </div>
-  </div>
-
-  <div class="toast" id="toast"></div>
-
-  <!-- ================= 底部導覽 (5 tabs) ================= -->
-  <div class="safe-zone">
-    <div class="tabbar" id="tabbar">
-      <div class="indicator" id="indicator">
-        <svg class="indicator-glass" id="indicatorSvg" xmlns="http://www.w3.org/2000/svg" style="position:absolute;inset:0;width:100%;height:100%;">
-          <defs>
-            <filter id="tabLensFilter" x="-30%" y="-30%" width="160%" height="160%" color-interpolation-filters="sRGB">
-              <feImage id="tabDispMap" x="0" y="0" width="100%" height="100%" result="dm"/>
-              <feDisplacementMap in="SourceGraphic" in2="dm" scale="34" xChannelSelector="R" yChannelSelector="G"/>
-            </filter>
-            <foreignObject id="bgSource" x="0" y="0" width="1000" height="200" style="position:absolute; top:-99999px;">
-              <div xmlns="http://www.w3.org/1999/xhtml" id="bgSourceBody"></div>
-            </foreignObject>
-          </defs>
-          <g id="lensGroup">
-            <use id="lensUse" href="#bgSource" filter="url(#tabLensFilter)"/>
-          </g>
-        </svg>
-        <div class="indicator-fill"></div>
-        <div class="indicator-specular"></div>
-      </div>
-
-      <div class="tab active" data-i="0">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6" width="19" height="12" rx="2.2"/><circle cx="12" cy="12" r="2.4"/></svg>
-        <span>總覽</span>
-      </div>
-      <div class="tab" data-i="1">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5 21.5 8H2.5L12 2.5Z"/><path d="M4 8v10M9 8v10M15 8v10M20 8v10"/><path d="M2.5 21h19"/></svg>
-        <span>帳戶</span>
-      </div>
-      <div class="tab" data-i="2">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V11M11 20V4M18 20v-7"/><path d="M2.5 20h19"/></svg>
-        <span>分析</span>
-      </div>
-      <div class="tab" data-i="3">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3.5h11l3 3V19a1.5 1.5 0 0 1-1.5 1.5H5A1.5 1.5 0 0 1 3.5 19V5A1.5 1.5 0 0 1 5 3.5Z"/><path d="M8 9h8M8 12.5h8M8 16h5"/></svg>
-        <span>明細</span>
-      </div>
-      <div class="tab" data-i="4">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20c1.3-3.8 4.2-5.8 7.5-5.8s6.2 2 7.5 5.8"/></svg>
-        <span>我的</span>
-      </div>
-    </div>
-  </div>
-
-</div>
-</div>
-
-<script>
   function Spring(stiffness, damping, mass) {
     this.k = stiffness; this.d = damping; this.m = mass;
     this.value = 0; this.velocity = 0; this.target = 0;
@@ -919,27 +25,11 @@
     { id: 'chase', name: 'Chase', icon: ICON_BANK_CHASE },
   ];
 
-  const accounts = [
-    { id: 'checking', bankId: 'chase', name: 'Chase帳戶', paymentType: 'bank', methods: ['debit', 'zelle'], startingBalance: 2500, spent: 55.55 },
-    { id: 'credit', bankId: 'chase', name: 'Chase信用卡', paymentType: 'credit', limit: 600, spent: 93.76, linkedAccountId: 'checking', closingDay: 25, paidUpToClosing: null, primaryOverview: true },
-  ];
+  const accounts = [];
 
-  const creditTransactions = [
-    { accountId: 'credit', iso: '2026-08-23', date: '8/23', month: '2026年8月', category: '飲料', name: 'Bambu 珍奶', amount: 7.38 },
-    { accountId: 'credit', iso: '2026-08-23', date: '8/23', month: '2026年8月', category: '雜貨', name: "Trader Joe's 雜貨", amount: 9.44 },
-    { accountId: 'credit', iso: '2026-08-24', date: '8/24', month: '2026年8月', category: '其他', name: '書店拍貼機', amount: 8.00 },
-    { accountId: 'credit', iso: '2026-08-26', date: '8/26', month: '2026年8月', category: '居住', name: '網子', amount: 0.81 },
-    { accountId: 'credit', iso: '2026-08-26', date: '8/26', month: '2026年8月', category: '居住', name: '膠帶', amount: 6.99 },
-    { accountId: 'credit', iso: '2026-08-28', date: '8/28', month: '2026年8月', category: '飲料', name: "Le C's Patisserie & Tea House 珍奶", amount: 5.79 },
-    { accountId: 'credit', iso: '2026-08-29', date: '8/29', month: '2026年8月', category: '食物', name: '麥屯小吃牛炒麵', amount: 13.70 },
-    { accountId: 'credit', iso: '2026-08-29', date: '8/29', month: '2026年8月', category: '其他', name: 'UPS郵費', amount: 7.84 },
-    { accountId: 'credit', iso: '2026-08-30', date: '8/30', month: '2026年8月', category: '食物', name: 'Fair Trade Coffee House 三明治', amount: 15.54 },
-    { accountId: 'credit', iso: '2026-08-30', date: '8/30', month: '2026年8月', category: '飲料', name: 'Fair Trade Coffee House 奶茶', amount: 6.02 },
-    { accountId: 'credit', iso: '2026-08-30', date: '8/30', month: '2026年8月', category: '飲料', name: 'Teamoji 抹茶珍珠拿鐵', amount: 7.33 },
-    { accountId: 'credit', iso: '2026-09-01', date: '9/1', month: '2026年9月', category: '飲料', name: 'Prairie Fire 拿鐵', amount: 4.92 },
-  ];
+  const creditTransactions = [];
 
-  const TODAY = new Date(2026, 8, 7);
+  const TODAY = new Date();
   function isoDate(d) { return d.toISOString().slice(0, 10); }
   function lastClosingDate(closingDay, ref) {
     const d = new Date(ref.getFullYear(), ref.getMonth(), closingDay);
@@ -983,7 +73,7 @@
     return `
       ${handle}
       <div class="row-icon">${icon}</div>
-      <div class="row-body"><div class="row-name">${a.name}</div>${secondary}</div>
+      <div class="row-body"><div class="row-name">${esc(a.name)}</div>${secondary}</div>
       <div class="row-amt ${amtClass}">${amt}</div>
     `;
   }
@@ -1008,7 +98,7 @@
       : `<div class="bank-logo" style="background:var(--chip-bg);color:var(--muted);box-shadow:none;">${group.icon}</div>`;
     return `
       <div class="bank-group" data-group="${group.key}">
-        <div class="bank-header">${logo}<div class="bank-name">${group.label}</div></div>
+        <div class="bank-header">${logo}<div class="bank-name">${esc(group.label)}</div></div>
         <div class="account-list" style="padding:0;">${rowsHTML}</div>
       </div>
     `;
@@ -1062,7 +152,7 @@
       heroTitleEl.textContent = credit.name + '・本期已刷';
       heroAmtEl.textContent = fmt(credit.spent);
       heroSubEl.innerHTML = `<span>額度 ${fmt(credit.limit)}</span><span>剩餘 ${fmt(creditAvailable(credit))}</span>`;
-      heroFillEl.style.width = Math.min(100, (credit.spent / credit.limit) * 100) + '%';
+      heroFillEl.style.width = Math.min(100, (credit.limit > 0 ? credit.spent / credit.limit : 0) * 100) + '%';
       heroProgressWrap.style.display = '';
     } else {
       heroTitleEl.textContent = '現金總額';
@@ -1078,17 +168,17 @@
 
     document.getElementById('ovAssetTotal').textContent = fmt(assetTotal);
     document.getElementById('ovAssetRows').innerHTML = assetAccounts.length
-      ? assetAccounts.map((a) => `<div class="plain-row"><span class="name">${a.name}</span><span class="plain-amt">${fmt(cashBalance(a))}</span></div>`).join('')
+      ? assetAccounts.map((a) => `<div class="plain-row"><span class="name">${esc(a.name)}</span><span class="plain-amt">${fmt(cashBalance(a))}</span></div>`).join('')
       : `<div class="plain-row"><span class="name">尚無帳戶</span><span class="plain-amt">$0.00</span></div>`;
 
     document.getElementById('ovLiabilityTotal').textContent = fmt(liabilityTotal);
     document.getElementById('ovLiabilityRows').innerHTML = liabilityAccounts.length
-      ? liabilityAccounts.map((a) => `<div class="plain-row"><span class="name">${a.name}</span><span class="plain-amt">${fmt(creditBalance(a))}</span></div>`).join('')
+      ? liabilityAccounts.map((a) => `<div class="plain-row"><span class="name">${esc(a.name)}</span><span class="plain-amt">${fmt(creditBalance(a))}</span></div>`).join('')
       : `<div class="plain-row"><span class="name">尚無信用卡</span><span class="plain-amt">$0.00</span></div>`;
 
     // 變體 A：淨資產 = 資產總額 - 負債總額(絕對值)。跟資產/負債分段切換無關，
     // 兩者互相獨立(比照 overview-toggle-demo.html 已核准的行為)。
-    const netWorth = assetTotal - Math.abs(liabilityTotal);
+    const netWorth = assetTotal + liabilityTotal;
     const netWorthEl = document.getElementById('ovNetWorth');
     netWorthEl.textContent = fmt(netWorth);
     netWorthEl.style.color = netWorth < 0 ? 'var(--danger)' : 'var(--success)';
@@ -1231,7 +321,7 @@
     document.getElementById('usageAmt').textContent = fmt(credit.spent);
     document.getElementById('limitAmt').textContent = '額度 ' + fmt(credit.limit);
     document.getElementById('availableAmt').textContent = '可用 ' + fmt(creditAvailable(credit));
-    document.getElementById('progressFill').style.width = Math.min(100, (credit.spent / credit.limit) * 100) + '%';
+    document.getElementById('progressFill').style.width = Math.min(100, (credit.limit > 0 ? credit.spent / credit.limit : 0) * 100) + '%';
 
     const stmt = statementSplit(credit);
     document.getElementById('unbilledAmt').textContent = '-' + fmt(stmt.unbilled);
@@ -1246,7 +336,7 @@
     for (const tx of creditTransactions) {
       if (tx.accountId !== credit.id) continue;
       if (tx.month !== lastMonth) { html += `<div class="section-header" style="padding-top:14px;">${tx.month}</div>`; lastMonth = tx.month; }
-      html += `<div class="tx-row"><div><div class="tx-cat">${tx.category}</div><div class="tx-name">${tx.name}</div></div><div class="tx-amt">${fmt(tx.amount)}</div></div>`;
+      html += `<div class="tx-row"><div><div class="tx-cat">${esc(tx.category)}</div><div class="tx-name">${esc(tx.name)}</div></div><div class="tx-amt">${fmt(tx.amount)}</div></div>`;
     }
     for (const p of paymentLog) {
       if (p.creditId !== credit.id) continue;
@@ -1276,7 +366,7 @@
     pickerList.innerHTML = options.map((o) => `
       <div class="picker-row${o.value === currentValue ? ' selected' : ''}" data-value="${o.value}">
         ${o.icon ? `<div class="row-icon">${o.icon}</div>` : ''}
-        <div class="picker-row-name">${o.label}</div>
+        <div class="picker-row-name">${esc(o.label)}</div>
         <svg class="picker-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l5 5 11-11"/></svg>
       </div>
     `).join('');
@@ -1334,7 +424,7 @@
     el.innerHTML = payAccounts.map((a) => `
       <div class="account-choice ${a.id === selectedPayAccountId ? 'selected' : ''}" data-id="${a.id}">
         <div class="row-icon">${TYPE_ICONS[a.paymentType]}</div>
-        <div class="row-body"><div class="row-name">${a.name}</div><div class="row-sub">目前餘額 ${fmt(cashBalance(a))}</div></div>
+        <div class="row-body"><div class="row-name">${esc(a.name)}</div><div class="row-sub">目前餘額 ${fmt(cashBalance(a))}</div></div>
       </div>
     `).join('');
     el.querySelectorAll('.account-choice').forEach((choice) => {
@@ -2053,7 +1143,7 @@
 
   // ===================== 分析頁 (merged from analysis-demo.html) =====================
   // 本月分類 / 近半年趨勢：目前沒有真的收入功能與逐月分類統計，先沿用示意假資料。
-  const CATS = [
+  let CATS = [
     { id: 'food',      name: '食物', color: '#f5a623' },
     { id: 'drink',     name: '飲料', color: '#06b6d4' },
     { id: 'housing',   name: '居住', color: '#8b5cf6' },
@@ -2062,15 +1152,15 @@
     { id: 'other',     name: '其他', color: '#6b7280' },
   ];
   const CAT_DARK = { food: '#ffb84d', drink: '#2bc4c8', housing: '#a78bfa', transport: '#f472b6', living: '#34d399', other: '#8a97a0' };
-  const expenseByCat = { food: 4200, drink: 850, housing: 3500, transport: 1200, living: 980, other: 320 };
-  const incomeByCat = {};
-  const trendMonths = ['4月', '5月', '6月', '7月', '8月', '9月'];
-  const trendExpense = [3200, 2800, 9800, 4100, 3900, 11050];
-  const trendIncome = [0, 0, 0, 0, 0, 0];
-  const trendBalance = trendIncome.map((v, i) => v - trendExpense[i]);
-  const expenseTotal = Object.values(expenseByCat).reduce((a, b) => a + b, 0);
-  const incomeTotal = 0;
-  const balanceTotal = incomeTotal - expenseTotal;
+  let expenseByCat = { food: 4200, drink: 850, housing: 3500, transport: 1200, living: 980, other: 320 };
+  let incomeByCat = {};
+  let trendMonths = ['4月', '5月', '6月', '7月', '8月', '9月'];
+  let trendExpense = [3200, 2800, 9800, 4100, 3900, 11050];
+  let trendIncome = [0, 0, 0, 0, 0, 0];
+  let trendBalance = trendIncome.map((v, i) => v - trendExpense[i]);
+  let expenseTotal = Object.values(expenseByCat).reduce((a, b) => a + b, 0);
+  let incomeTotal = 0;
+  let balanceTotal = incomeTotal - expenseTotal;
 
   // 上層 tab（收支/帳單/債務）：底線指示器，跟底部 tabbar 共用同一份 Spring 實作
   const topTabsEl = document.getElementById('topTabs');
@@ -2181,7 +1271,7 @@
       const color = isDark ? (CAT_DARK[s.id] || s.color) : s.color;
       return `<div class="legend-row" data-cat="${s.id}">
         <div class="legend-dot" style="background:${color}"></div>
-        <div class="legend-name">${s.name}</div>
+        <div class="legend-name">${esc(s.name)}</div>
         <div class="legend-pct">${pct}%</div>
         <div class="legend-amt">${fmt(s.amount)}</div>
       </div>`;
@@ -2361,7 +1451,7 @@
       <div class="list-row">
         <div class="row-icon">${ICON_CREDIT}</div>
         <div class="row-body">
-          <div class="row-name">${c.name}</div>
+          <div class="row-name">${esc(c.name)}</div>
           <div class="row-sub ok">正常</div>
         </div>
         <div class="row-amt-group">
@@ -2426,7 +1516,7 @@
     tipPresets: [15,18,20,22,25],
     categories: ['食物','飲料','雜貨','交通','娛樂','生活','房租','學費','其他'].map((name, index) => ({ id: name, name, icon: MY_CATEGORY_ICONS[index], color: MY_CATEGORY_COLORS[index], exclude: ['房租','學費'].includes(name) })),
   });
-  function loadMyState() { try { const saved = JSON.parse(localStorage.getItem(MY_STORAGE_KEY)); if (!(saved && saved.bookName && Array.isArray(saved.categories))) return defaultMyState(); saved.bookIcon ||= 'book'; if (!saved.bookColor || saved.bookColor === '#1a9b9e') saved.bookColor = '#06b6d4'; saved.customColors ||= []; saved.categories.forEach((item, index) => { item.icon ||= MY_CATEGORY_ICONS[index % MY_CATEGORY_ICONS.length]; item.color ||= MY_CATEGORY_COLORS[index % MY_CATEGORY_COLORS.length]; }); return saved; } catch { return defaultMyState(); } }
+  function loadMyState() { return window.ledger.settingsView(); }
   let myState = loadMyState();
   function saveMyState() { try { localStorage.setItem(MY_STORAGE_KEY, JSON.stringify(myState)); } catch {} }
   function appearanceLabel(value) { return ({ light:'淺色', system:'跟隨系統', dark:'深色' })[value] || '淺色'; }
@@ -2519,6 +1609,3 @@
   })();
   applyAppearance();
   renderMy();
-</script>
-</body>
-</html>
