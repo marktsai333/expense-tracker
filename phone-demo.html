@@ -60,9 +60,10 @@
              62px top rhythm, but reserve one 84px content-clearance band for
              the visible bottom capsule; do not add a second bottom safe-area
              offset to the capsule itself. */
-          /* 70px capsule + 8px clearance + its final bottom anchor. This is
-             the minimum last-row clearance, not a second safe-area band. */
-          .phone { padding-top:max(62px, var(--phone-safe-top, env(safe-area-inset-top, 0px))) !important; padding-bottom:calc(78px + max(16px, calc(var(--phone-safe-bottom, 0px) - 4px))) !important; background:transparent !important; overscroll-behavior-y:none !important; }
+          /* 70px capsule + a deliberately tight 4px last-row clearance.
+             This is the minimum content clearance, not a second safe-area
+             band; it keeps long white pages visually continuous below glass. */
+          .phone { padding-top:max(62px, var(--phone-safe-top, env(safe-area-inset-top, 0px))) !important; padding-bottom:calc(74px + max(12px, calc(var(--phone-safe-bottom, 0px) - 16px))) !important; background:transparent !important; overscroll-behavior-y:none !important; }
           .screen.visible { background:var(--bg) !important; }
           .device-screen::before { content:""; position:absolute; z-index:0; top:0; right:0; left:0; height:max(62px, var(--phone-safe-top, env(safe-area-inset-top, 0px))); background:var(--accent) !important; pointer-events:none; }
           .device-screen[data-phone-surface="overview"]::before { background:var(--accent) !important; }
@@ -74,7 +75,7 @@
              anchor only; max() keeps the approved 16px rhythm on devices
              with no home-indicator inset without creating a second strip
              below the app surface. */
-          .safe-zone { bottom:max(16px, calc(var(--phone-safe-bottom, 0px) - 4px)) !important; height:70px !important; align-items:flex-end !important; }
+          .safe-zone { bottom:max(12px, calc(var(--phone-safe-bottom, 0px) - 16px)) !important; height:70px !important; align-items:flex-end !important; }
           .safe-zone.phone-sheet-open { display:none !important; }
           .tabbar { bottom:auto !important; }
           .fab { bottom:92px !important; }
@@ -443,7 +444,7 @@
           const buildVersion = doc.createElement('p');
           buildVersion.id = 'phoneBuildVersion';
           buildVersion.className = 'phone-build-version';
-          buildVersion.textContent = '手機測試版 v7 · 2026-09-09 · 長頁底部間距修正';
+          buildVersion.textContent = '手機測試版 v8 · 2026-09-09 · 底部位置加強調整';
           myContent.appendChild(buildVersion);
         }
 
