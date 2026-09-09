@@ -32,7 +32,7 @@
           '<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">',
           '<meta name="apple-mobile-web-app-title" content="記帳">',
         ].join('');
-        const runtimeTag = '<script src="phone-runtime-loader.js?runtime=v10"><' + '/script>';
+        const runtimeTag = '<script src="phone-runtime-v10.js"><' + '/script>';
         source = source.replace(/<\/head>/i, `${mobileHead}</head>`);
         source = source.replace(/<\/body>/i, `${runtimeTag}</body>`);
         document.open();
