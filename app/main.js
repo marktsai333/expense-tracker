@@ -1568,6 +1568,8 @@
   const mySheetBody = document.getElementById('mySheetBody');
   function openMySheet(title, body) { [pickerSheet, paySheet, editSheet].forEach(sheet => { sheet?.classList.remove('open'); sheet?.classList.add('is-suppressed'); }); mySheet.classList.remove('is-suppressed'); mySheetTitle.textContent = title; mySheetBody.innerHTML = body; sheetBackdrop.classList.add('open'); mySheet.classList.add('open'); }
   function closeMySheet() { if (!mySheet) return; mySheet.classList.remove('open'); if (!pickerSheet.classList.contains('open') && !paySheet.classList.contains('open') && !editSheet.classList.contains('open')) sheetBackdrop.classList.remove('open'); }
+  window.openMySheet = openMySheet;
+  window.closeMySheet = closeMySheet;
   document.getElementById('mySheetClose').addEventListener('click', closeMySheet);
   function esc(value) { return String(value).replace(/[&<>'"]/g, char => ({ '&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;' })[char]); }
   function openBookNameSheet(category) {

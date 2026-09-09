@@ -5,6 +5,17 @@
   let busy=false;
   const run=async(work,after)=>{if(busy)return;busy=true;document.documentElement.dataset.saving='true';try{await work();after?.();}catch(error){window.refreshLedgerUI();showToast(error.message);}finally{busy=false;delete document.documentElement.dataset.saving;}};
   window.runLedgerAction=run;
+  const cloudStatusLabel={disabled:'本機帳本',idle:'尚未連線',connecting:'連線中',syncing:'同步中',synced:'已同步',offline:'離線',error:'同步錯誤'};
+  const renderCloudStatus=view=>{
+    const state=view||window.cloudSync?.view()||{status:'disabled',message:'尚未設定 Firebase'};
+    const status=cloudStatusLabel[state.status]||'本機帳本';
+    const hint=document.querySelector('.my-pair-hint');
+    if(hint) hint.textContent=state.status==='disabled'?'目前只儲存在此裝置；設定 Firebase 後即可啟用雙人同步。':state.status==='idle'?'代碼尚未連線；按下加入共享帳本開始同步。':(state.message||status);
+    const syncTitle=state.status==='synced'?'立即同步共享帳本':state.status==='disabled'?'資料儲存在這部裝置':'共享帳本同步狀態：'+status;
+    document.getElementById('syncBtn')?.setAttribute('title',syncTitle);
+    document.querySelectorAll('.sync-pill').forEach(e=>e.textContent=status);
+    const sub=document.querySelector('.date-sub');if(sub)sub.textContent=state.status==='synced'?'資料已同步至共享帳本':'資料已儲存於此裝置';
+  };
   window.refreshLedgerUI=()=>{
     const state=store.snapshot();
     accounts.splice(0,accounts.length,...store.accountsView());
@@ -30,10 +41,7 @@
     const net=myState.overviewMode==='net';ovVariantA.style.display=net?'':'none';ovVariantB.style.display=net?'none':'';
     const modeLabel=document.getElementById('myOverviewModeValue');if(modeLabel)modeLabel.textContent=net?'淨資產模式':'信用卡模式';
     document.getElementById('ovDateBig').textContent=`${now.getMonth()+1}月${now.getDate()}日(${'日一二三四五六'[now.getDay()]})`;
-    document.querySelector('.date-sub').textContent='資料已儲存於此裝置';
-    document.querySelector('.my-pair-hint').textContent='目前使用本機帳本；配對與雲端同步將於後續開放。';
-    document.getElementById('syncBtn').title='資料儲存在這部裝置';
-    document.querySelectorAll('.sync-pill').forEach(e=>e.textContent='本機帳本');
+    renderCloudStatus(window.cloudSync?.view());
     const excluded=state.categories.filter(c=>c.exclude).map(c=>c.name).join('、');
     let note=document.getElementById('chartExclusions');if(!note){note=document.createElement('p');note.id='chartExclusions';note.className='my-sheet-note';document.getElementById('donutArea').after(note);}note.textContent=excluded?'消費結構已排除：'+excluded:'';
     document.getElementById('phoneBuildVersion')?.replaceChildren(document.createTextNode('本機帳本 v1 · 手機版面 v10'));
@@ -58,15 +66,29 @@
   const excelImport=document.createElement('button');excelImport.className='my-row';excelImport.id='myImportExcel';excelImport.innerHTML='<span class="my-row-icon">'+myIcons.upload+'</span><span class="my-row-label">匯入 Excel</span><span class="my-row-chevron">›</span>';myImport.after(excelImport);
   const excelInput=document.createElement('input');excelInput.type='file';excelInput.accept='.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';excelInput.hidden=true;excelInput.id='xlsxImportInput';document.body.append(excelInput);excelImport.onclick=()=>excelInput.click();
   excelInput.onchange=async()=>{const file=excelInput.files?.[0];excelInput.value='';if(!file)return;if(file.size>20e6)return showToast('檔案超過 20 MB');try{const buffer=await file.arrayBuffer(),preview=utils.convertXLSX(buffer),hint=preview.warnings.length?`\n另有 ${preview.warnings.length} 項資料提示。`:'';showConfirmAlert(`將用 Excel 的 ${preview.importedCount} 筆交易取代目前全部帳戶與交易？${hint}`,()=>run(()=>utils.importXLSX(store,buffer),()=>showToast(`Excel 已匯入 ${preview.importedCount} 筆`)));}catch(error){showToast(error.message||'無法讀取這份 Excel');}};
+  const cloudCodeLabel=code=>String(code||'').replace(/^(\d{3})(\d{3})$/,'$1 $2');
+  const openCloudSheet=()=>{
+    const state=window.cloudSync?.view()||{status:'disabled'};
+    if(state.status==='disabled'){
+      return window.openMySheet?.('雲端同步','<p class="my-sheet-note">目前只儲存在此裝置。完成 Firebase Web 設定並重新部署後，就能用六碼代碼與另一支手機同步。</p><div class="my-sheet-actions"><button class="my-sheet-action" data-my-action="close-cloud">知道了</button></div>');
+    }
+    const code=store.snapshot().settings.pairCode;
+    window.openMySheet?.('雲端同步',`<p class="my-sheet-note">兩支手機使用同一組六碼代碼，就會同步帳戶、交易、類別與帳本設定。${state.status==='synced'?'目前已連線，可直接按立即同步。':''}</p><div class="field-label" style="margin-top:0">目前代碼</div><div class="my-cloud-current-code">${cloudCodeLabel(code)}</div><button class="my-sheet-action" data-my-action="cloud-create">使用目前代碼開始共享</button><div class="field-label">加入另一個帳本</div><input class="field-input" id="myJoinCode" inputmode="numeric" maxlength="7" placeholder="例如 123 456" /><div class="my-sheet-actions"><button class="my-sheet-action" data-my-action="cloud-join">加入並同步</button></div>`);
+  };
   // Capture before the approved demo's in-memory listeners. Nothing is mutated
   // until the transaction commits; errors leave forms and data available.
   document.addEventListener('click',event=>{
     const target=event.target.closest('button,[data-phone-overview-mode],[data-my-action]');if(!target)return;
     const id=target.id,action=target.dataset.myAction,mode=target.dataset.phoneOverviewMode;
     const intercept=()=>{event.preventDefault();event.stopImmediatePropagation();};
-    if(['saveAccountBtn','saveEditAccountBtn','confirmPayBtn','editPrimaryToggle','myBackup','myExportCsv','myClear','myJoinBook','syncBtn','ovSyncBtn'].includes(id)||mode||['save-name','join-book','set-appearance','toggle-chart','add-category','select-icon','select-color','add-custom-color','delete-category','toggle-tip','add-custom-tip'].includes(action))intercept();else return;
+    if(['saveAccountBtn','saveEditAccountBtn','confirmPayBtn','editPrimaryToggle','myBackup','myExportCsv','myClear','myJoinBook','syncBtn','ovSyncBtn'].includes(id)||mode||['save-name','join-book','set-appearance','toggle-chart','add-category','select-icon','select-color','add-custom-color','delete-category','toggle-tip','add-custom-tip','cloud-create','cloud-join','close-cloud'].includes(action))intercept();else return;
     if(id==='myBackup')return exportBackup();if(id==='myExportCsv')return exportCsv();
-    if(id==='myJoinBook'||id==='syncBtn'||id==='ovSyncBtn'||action==='join-book')return showToast('目前為本機帳本，雲端同步尚未開放');
+    if(id==='myJoinBook')return openCloudSheet();
+    if(id==='syncBtn'||id==='ovSyncBtn'){if(window.cloudSync?.activeCode)return window.cloudSync.syncNow();return openCloudSheet();}
+    if(action==='close-cloud')return closeMySheet();
+    if(action==='cloud-create')return run(()=>window.cloudSync.start(store.snapshot().settings.pairCode,{mode:'create'}),()=>{closeMySheet();showToast('共享帳本已啟用');});
+    if(action==='cloud-join'){const code=document.getElementById('myJoinCode')?.value.replace(/\D/g,'');if(!/^\d{6}$/.test(code))return showToast('請輸入六碼配對代碼');return run(()=>window.cloudSync.start(code,{mode:'join'}),()=>{closeMySheet();showToast('已加入共享帳本');});}
+    if(action==='join-book')return openCloudSheet();
     if(id==='myClear')return showConfirmAlert('清除全部帳戶、交易與設定？此動作無法復原，建議先匯出完整備份。',()=>run(()=>store.clear(),()=>{closeMySheet();showToast('所有資料已清除');}));
     if(id==='saveAccountBtn'){
       const paymentType=currentAddType(),linkedAccountId=document.getElementById('linkedAccountSelect').dataset.value||null,linked=accounts.find(a=>a.id===linkedAccountId),bankId=paymentType==='bank'?document.getElementById('bankSelect').dataset.value:paymentType==='credit'?linked?.bankId:null;
@@ -96,5 +118,6 @@
   },true);
   document.getElementById('myRestoreInput').addEventListener('change',async event=>{event.stopImmediatePropagation();const file=event.target.files?.[0];event.target.value='';if(!file)return;if(file.size>20e6)return showToast('檔案超過 20 MB');const text=await file.text();try{const parsed=JSON.parse(text);if(parsed.format!=='expense-tracker')throw Error();}catch{return showToast('無法讀取這份正式版備份');}showConfirmAlert('以此備份取代目前全部帳戶、交易與設定？',()=>run(()=>store.restore(text),()=>{closeMySheet();showToast('備份已還原');}));},true);
   store.subscribe(window.refreshLedgerUI);
+  window.cloudSync?.subscribe(renderCloudStatus);
   window.refreshLedgerUI();
 })();
