@@ -78,15 +78,19 @@
     const code=store.snapshot().settings.pairCode;
     window.openMySheet?.('雲端同步',`<p class="my-sheet-note">兩支手機使用同一組六碼代碼，就會同步帳戶、交易、類別與帳本設定。${state.status==='synced'?'目前已連線，可直接按立即同步。':''}</p><div class="field-label" style="margin-top:0">目前代碼</div><div class="my-cloud-current-code">${cloudCodeLabel(code)}</div><button class="my-sheet-action" data-my-action="cloud-create">使用目前代碼開始共享</button><div class="field-label">加入另一個帳本</div><input class="field-input" id="myJoinCode" inputmode="numeric" maxlength="7" placeholder="例如 123 456" /><div class="my-sheet-actions"><button class="my-sheet-action" data-my-action="cloud-join">加入並同步</button></div>`);
   };
+  let cloudBackupRequest=0;
   const openCloudBackupsSheet=async()=>{
+    const requestId=++cloudBackupRequest;
     const cloud=window.cloudSync;
     if(!cloud?.activeCode)return window.openMySheet?.('雲端備份','<p class="my-sheet-note">請先在「加入共享帳本」啟用雲端同步，才能建立與還原雲端備份。</p><div class="my-sheet-actions"><button class="my-sheet-action" data-my-action="close-cloud">知道了</button></div>');
     window.openMySheet?.('雲端備份','<p class="my-sheet-note">每天第一次連線會自動保存一份完整帳本；清除或還原前也會先保存。備份包含帳戶、交易、分類、帳本圖案、顏色與所有設定。</p><p class="my-sheet-note">讀取備份清單中…</p>');
     try{
       const backups=await cloud.listBackups();
+      if(requestId!==cloudBackupRequest)return;
       const rows=backups.length?backups.map(item=>`<button class="my-setting-option my-cloud-backup-row" data-my-action="cloud-restore-backup" data-backup-id="${htmlEscape(item.id)}"><span><strong>${htmlEscape(formatBackupDate(item.createdAt))}</strong><small>${htmlEscape(backupReasonLabel[item.reason]||'雲端備份')} · ${item.accountCount} 個帳戶 · ${item.transactionCount} 筆交易</small></span><span class="check">還原</span></button>`).join(''):'<p class="my-sheet-note">目前還沒有雲端備份。</p>';
       window.openMySheet?.('雲端備份',`<p class="my-sheet-note">每天第一次連線會自動保存一份完整帳本；清除或還原前也會先保存。備份包含帳戶、交易、分類、帳本圖案、顏色與所有設定。</p><button class="my-sheet-action" data-my-action="cloud-backup-now">立即備份</button><div class="my-cloud-backup-list">${rows}</div>`);
     }catch(error){
+      if(requestId!==cloudBackupRequest)return;
       window.openMySheet?.('雲端備份',`<p class="my-sheet-note">目前無法讀取雲端備份：${htmlEscape(error.message||'同步失敗')}</p><div class="my-sheet-actions"><button class="my-sheet-action" data-my-action="close-cloud">知道了</button></div>`);
     }
   };
