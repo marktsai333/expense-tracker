@@ -108,7 +108,7 @@
     if(action==='close-cloud')return closeMySheet();
     if(action==='cloud-create')return run(()=>window.cloudSync.start(store.snapshot().settings.pairCode,{mode:'create'}),()=>{closeMySheet();showToast('共享帳本已啟用');});
     if(action==='cloud-join'){const code=document.getElementById('myJoinCode')?.value.replace(/\D/g,'');if(!/^\d{6}$/.test(code))return showToast('請輸入六碼配對代碼');return run(()=>window.cloudSync.start(code,{mode:'join'}),()=>{closeMySheet();showToast('已加入共享帳本');});}
-    if(action==='cloud-backup-now')return run(()=>window.cloudSync.createBackup('manual'),()=>{showToast('雲端備份已建立');openCloudBackupsSheet();});
+    if(action==='cloud-backup-now')return run(()=>window.cloudSync.createBackup('manual'),()=>{showToast('雲端備份已建立');setTimeout(openCloudBackupsSheet,300);});
     if(action==='cloud-restore-backup'){const id=target.dataset.backupId;return showConfirmAlert('先保存目前資料，再還原這份雲端備份？',()=>run(()=>window.cloudSync.restoreBackup(id),()=>{closeMySheet();showToast('雲端備份已還原');}));}
     if(action==='join-book')return openCloudSheet();
     if(id==='myClear')return showConfirmAlert('清除全部帳戶、交易與設定？此動作無法復原，會先保存一份雲端備份。',()=>run(async()=>{if(window.cloudSync?.activeCode)await window.cloudSync.createBackup('before-clear');await store.clear();},()=>{closeMySheet();showToast('所有資料已清除');}));
