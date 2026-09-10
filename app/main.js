@@ -1550,6 +1550,7 @@
     tip:'<svg viewBox="0 0 24 24"><path d="M12 3v18M7.5 7.5c0-1.6 1.7-2.7 4.3-2.7 2.4 0 4.1 1 4.1 2.6 0 4.2-8.5 1.5-8.5 5.7 0 1.7 1.8 2.9 4.5 2.9 2.5 0 4.3-1.1 4.3-2.8"/></svg>',
     download:'<svg viewBox="0 0 24 24"><path d="M12 3v11m0 0 4-4m-4 4-4-4M5 16v3h14v-3"/></svg>',
     upload:'<svg viewBox="0 0 24 24"><path d="M12 21V10m0 0 4 4m-4-4-4 4M5 8V5h14v3"/></svg>',
+    cloud:'<svg viewBox="0 0 24 24"><path d="M7.5 18.5h10a3.5 3.5 0 0 0 .6-6.95A6.25 6.25 0 0 0 6.1 10.2 4.2 4.2 0 0 0 7.5 18.5Z"/></svg>',
     export:'<svg viewBox="0 0 24 24"><path d="M12 3v11m0 0 4-4m-4 4-4-4M5 15v4h14v-4"/><path d="M19 8h2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8h2"/></svg>',
     trash:'<svg viewBox="0 0 24 24"><path d="M4 7h16M10 11v6m4-6v6M6 7l1 14h10l1-14M9 7V4h6v3"/></svg>',
   };

@@ -67,6 +67,9 @@
   const excelInput=document.createElement('input');excelInput.type='file';excelInput.accept='.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';excelInput.hidden=true;excelInput.id='xlsxImportInput';document.body.append(excelInput);excelImport.onclick=()=>excelInput.click();
   excelInput.onchange=async()=>{const file=excelInput.files?.[0];excelInput.value='';if(!file)return;if(file.size>20e6)return showToast('檔案超過 20 MB');try{const buffer=await file.arrayBuffer(),preview=utils.convertXLSX(buffer),hint=preview.warnings.length?`\n另有 ${preview.warnings.length} 項資料提示。`:'';showConfirmAlert(`將用 Excel 的 ${preview.importedCount} 筆交易取代目前全部帳戶與交易？${hint}`,()=>run(()=>utils.importXLSX(store,buffer),()=>showToast(`Excel 已匯入 ${preview.importedCount} 筆`)));}catch(error){showToast(error.message||'無法讀取這份 Excel');}};
   const cloudCodeLabel=code=>String(code||'').replace(/^(\d{3})(\d{3})$/,'$1 $2');
+  const htmlEscape=value=>String(value).replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+  const backupReasonLabel={daily:'每日備份','before-clear':'清除前備份','before-restore':'還原前備份',manual:'手動備份'};
+  const formatBackupDate=value=>{const date=value?.toDate?value.toDate():new Date(value||0);return Number.isNaN(date.getTime())?'剛剛':date.toLocaleString('zh-TW',{year:'numeric',month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});};
   const openCloudSheet=()=>{
     const state=window.cloudSync?.view()||{status:'disabled'};
     if(state.status==='disabled'){
@@ -75,21 +78,36 @@
     const code=store.snapshot().settings.pairCode;
     window.openMySheet?.('雲端同步',`<p class="my-sheet-note">兩支手機使用同一組六碼代碼，就會同步帳戶、交易、類別與帳本設定。${state.status==='synced'?'目前已連線，可直接按立即同步。':''}</p><div class="field-label" style="margin-top:0">目前代碼</div><div class="my-cloud-current-code">${cloudCodeLabel(code)}</div><button class="my-sheet-action" data-my-action="cloud-create">使用目前代碼開始共享</button><div class="field-label">加入另一個帳本</div><input class="field-input" id="myJoinCode" inputmode="numeric" maxlength="7" placeholder="例如 123 456" /><div class="my-sheet-actions"><button class="my-sheet-action" data-my-action="cloud-join">加入並同步</button></div>`);
   };
+  const openCloudBackupsSheet=async()=>{
+    const cloud=window.cloudSync;
+    if(!cloud?.activeCode)return window.openMySheet?.('雲端備份','<p class="my-sheet-note">請先在「加入共享帳本」啟用雲端同步，才能建立與還原雲端備份。</p><div class="my-sheet-actions"><button class="my-sheet-action" data-my-action="close-cloud">知道了</button></div>');
+    window.openMySheet?.('雲端備份','<p class="my-sheet-note">每天第一次連線會自動保存一份完整帳本；清除或還原前也會先保存。備份包含帳戶、交易、分類、帳本圖案、顏色與所有設定。</p><p class="my-sheet-note">讀取備份清單中…</p>');
+    try{
+      const backups=await cloud.listBackups();
+      const rows=backups.length?backups.map(item=>`<button class="my-setting-option my-cloud-backup-row" data-my-action="cloud-restore-backup" data-backup-id="${htmlEscape(item.id)}"><span><strong>${htmlEscape(formatBackupDate(item.createdAt))}</strong><small>${htmlEscape(backupReasonLabel[item.reason]||'雲端備份')} · ${item.accountCount} 個帳戶 · ${item.transactionCount} 筆交易</small></span><span class="check">還原</span></button>`).join(''):'<p class="my-sheet-note">目前還沒有雲端備份。</p>';
+      window.openMySheet?.('雲端備份',`<p class="my-sheet-note">每天第一次連線會自動保存一份完整帳本；清除或還原前也會先保存。備份包含帳戶、交易、分類、帳本圖案、顏色與所有設定。</p><button class="my-sheet-action" data-my-action="cloud-backup-now">立即備份</button><div class="my-cloud-backup-list">${rows}</div>`);
+    }catch(error){
+      window.openMySheet?.('雲端備份',`<p class="my-sheet-note">目前無法讀取雲端備份：${htmlEscape(error.message||'同步失敗')}</p><div class="my-sheet-actions"><button class="my-sheet-action" data-my-action="close-cloud">知道了</button></div>`);
+    }
+  };
   // Capture before the approved demo's in-memory listeners. Nothing is mutated
   // until the transaction commits; errors leave forms and data available.
   document.addEventListener('click',event=>{
     const target=event.target.closest('button,[data-phone-overview-mode],[data-my-action]');if(!target)return;
     const id=target.id,action=target.dataset.myAction,mode=target.dataset.phoneOverviewMode;
     const intercept=()=>{event.preventDefault();event.stopImmediatePropagation();};
-    if(['saveAccountBtn','saveEditAccountBtn','confirmPayBtn','editPrimaryToggle','myBackup','myExportCsv','myClear','myJoinBook','syncBtn','ovSyncBtn'].includes(id)||mode||['save-name','join-book','set-appearance','toggle-chart','add-category','select-icon','select-color','add-custom-color','delete-category','toggle-tip','add-custom-tip','cloud-create','cloud-join','close-cloud'].includes(action))intercept();else return;
+    if(['saveAccountBtn','saveEditAccountBtn','confirmPayBtn','editPrimaryToggle','myBackup','myExportCsv','myClear','myJoinBook','myCloudBackups','syncBtn','ovSyncBtn'].includes(id)||mode||['save-name','join-book','set-appearance','toggle-chart','add-category','select-icon','select-color','add-custom-color','delete-category','toggle-tip','add-custom-tip','cloud-create','cloud-join','cloud-backup-now','cloud-restore-backup','close-cloud'].includes(action))intercept();else return;
     if(id==='myBackup')return exportBackup();if(id==='myExportCsv')return exportCsv();
     if(id==='myJoinBook')return openCloudSheet();
+    if(id==='myCloudBackups')return openCloudBackupsSheet();
     if(id==='syncBtn'||id==='ovSyncBtn'){if(window.cloudSync?.activeCode)return window.cloudSync.syncNow();return openCloudSheet();}
     if(action==='close-cloud')return closeMySheet();
     if(action==='cloud-create')return run(()=>window.cloudSync.start(store.snapshot().settings.pairCode,{mode:'create'}),()=>{closeMySheet();showToast('共享帳本已啟用');});
     if(action==='cloud-join'){const code=document.getElementById('myJoinCode')?.value.replace(/\D/g,'');if(!/^\d{6}$/.test(code))return showToast('請輸入六碼配對代碼');return run(()=>window.cloudSync.start(code,{mode:'join'}),()=>{closeMySheet();showToast('已加入共享帳本');});}
+    if(action==='cloud-backup-now')return run(()=>window.cloudSync.createBackup('manual'),()=>{showToast('雲端備份已建立');openCloudBackupsSheet();});
+    if(action==='cloud-restore-backup'){const id=target.dataset.backupId;return showConfirmAlert('先保存目前資料，再還原這份雲端備份？',()=>run(()=>window.cloudSync.restoreBackup(id),()=>{closeMySheet();showToast('雲端備份已還原');}));}
     if(action==='join-book')return openCloudSheet();
-    if(id==='myClear')return showConfirmAlert('清除全部帳戶、交易與設定？此動作無法復原，建議先匯出完整備份。',()=>run(()=>store.clear(),()=>{closeMySheet();showToast('所有資料已清除');}));
+    if(id==='myClear')return showConfirmAlert('清除全部帳戶、交易與設定？此動作無法復原，會先保存一份雲端備份。',()=>run(async()=>{if(window.cloudSync?.activeCode)await window.cloudSync.createBackup('before-clear');await store.clear();},()=>{closeMySheet();showToast('所有資料已清除');}));
     if(id==='saveAccountBtn'){
       const paymentType=currentAddType(),linkedAccountId=document.getElementById('linkedAccountSelect').dataset.value||null,linked=accounts.find(a=>a.id===linkedAccountId),bankId=paymentType==='bank'?document.getElementById('bankSelect').dataset.value:paymentType==='credit'?linked?.bankId:null;
       const name=document.getElementById('newAccName').value.trim()||suggestedAccName(paymentType,bankId);
@@ -116,7 +134,7 @@
     if(action==='add-custom-tip'){const raw=document.getElementById('myCustomTip').value;if(raw==='')return showToast('請輸入百分比');const value=Number(raw);next.tipPresets=[...new Set([...next.tipPresets,value])].sort((a,b)=>a-b);after=openTipsSheet;}
     run(()=>store.saveSettings(next),after);
   },true);
-  document.getElementById('myRestoreInput').addEventListener('change',async event=>{event.stopImmediatePropagation();const file=event.target.files?.[0];event.target.value='';if(!file)return;if(file.size>20e6)return showToast('檔案超過 20 MB');const text=await file.text();try{const parsed=JSON.parse(text);if(parsed.format!=='expense-tracker')throw Error();}catch{return showToast('無法讀取這份正式版備份');}showConfirmAlert('以此備份取代目前全部帳戶、交易與設定？',()=>run(()=>store.restore(text),()=>{closeMySheet();showToast('備份已還原');}));},true);
+  document.getElementById('myRestoreInput').addEventListener('change',async event=>{event.stopImmediatePropagation();const file=event.target.files?.[0];event.target.value='';if(!file)return;if(file.size>20e6)return showToast('檔案超過 20 MB');const text=await file.text();try{const parsed=JSON.parse(text);if(parsed.format!=='expense-tracker')throw Error();}catch{return showToast('無法讀取這份正式版備份');}showConfirmAlert('以此備份取代目前全部帳戶、交易與設定？會先保存目前的雲端資料。',()=>run(async()=>{if(window.cloudSync?.activeCode)await window.cloudSync.createBackup('before-restore');const code=window.cloudSync?.activeCode;await store.restore(text);if(code)await store.saveSettings({...store.settingsView(),pairCode:code,cloudEnabled:true});},()=>{closeMySheet();showToast('備份已還原');}));},true);
   store.subscribe(window.refreshLedgerUI);
   window.cloudSync?.subscribe(renderCloudStatus);
   window.refreshLedgerUI();
