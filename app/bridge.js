@@ -3,7 +3,7 @@
   const store=window.ledger, utils=window.ledgerUtils;
   window.MY_CATEGORY_ICON_PATHS=MY_CATEGORY_ICON_PATHS;
   let busy=false;
-  const run=async(work,after)=>{if(busy)return;busy=true;document.documentElement.dataset.saving='true';try{await work();after?.();}catch(error){window.refreshLedgerUI();showToast(error.message);}finally{busy=false;delete document.documentElement.dataset.saving;}};
+  const run=async(work,after)=>{if(busy)return;busy=true;document.documentElement.dataset.saving='true';try{const result=await work();after?.(result);}catch(error){window.refreshLedgerUI();showToast(error.message);}finally{busy=false;delete document.documentElement.dataset.saving;}};
   window.runLedgerAction=run;
   const cloudStatusLabel={disabled:'本機帳本',idle:'尚未連線',connecting:'連線中',syncing:'同步中',synced:'已同步',offline:'離線',error:'同步錯誤'};
   const renderCloudStatus=view=>{
@@ -79,13 +79,17 @@
     window.openMySheet?.('雲端同步',`<p class="my-sheet-note">兩支手機使用同一組六碼代碼，就會同步帳戶、交易、類別與帳本設定。${state.status==='synced'?'目前已連線，可直接按立即同步。':''}</p><div class="field-label" style="margin-top:0">目前代碼</div><div class="my-cloud-current-code">${cloudCodeLabel(code)}</div><button class="my-sheet-action" data-my-action="cloud-create">使用目前代碼開始共享</button><div class="field-label">加入另一個帳本</div><input class="field-input" id="myJoinCode" inputmode="numeric" maxlength="7" placeholder="例如 123 456" /><div class="my-sheet-actions"><button class="my-sheet-action" data-my-action="cloud-join">加入並同步</button></div>`);
   };
   let cloudBackupRequest=0;
-  const openCloudBackupsSheet=async()=>{
+  const openCloudBackupsSheet=async(expectedId=null)=>{
     const requestId=++cloudBackupRequest;
     const cloud=window.cloudSync;
     if(!cloud?.activeCode)return window.openMySheet?.('雲端備份','<p class="my-sheet-note">請先在「加入共享帳本」啟用雲端同步，才能建立與還原雲端備份。</p><div class="my-sheet-actions"><button class="my-sheet-action" data-my-action="close-cloud">知道了</button></div>');
     window.openMySheet?.('雲端備份','<p class="my-sheet-note">每天第一次連線會自動保存一份完整帳本；清除或還原前也會先保存。備份包含帳戶、交易、分類、帳本圖案、顏色與所有設定。</p><p class="my-sheet-note">讀取備份清單中…</p>');
     try{
-      const backups=await cloud.listBackups();
+      let backups=await cloud.listBackups();
+      if(expectedId && !backups.some(item=>item.id===expectedId)){
+        await new Promise(resolve=>setTimeout(resolve,500));
+        backups=await cloud.listBackups();
+      }
       if(requestId!==cloudBackupRequest)return;
       const rows=backups.length?backups.map(item=>`<button class="my-setting-option my-cloud-backup-row" data-my-action="cloud-restore-backup" data-backup-id="${htmlEscape(item.id)}"><span><strong>${htmlEscape(formatBackupDate(item.createdAt))}</strong><small>${htmlEscape(backupReasonLabel[item.reason]||'雲端備份')} · ${item.accountCount} 個帳戶 · ${item.transactionCount} 筆交易</small></span><span class="check">還原</span></button>`).join(''):'<p class="my-sheet-note">目前還沒有雲端備份。</p>';
       window.openMySheet?.('雲端備份',`<p class="my-sheet-note">每天第一次連線會自動保存一份完整帳本；清除或還原前也會先保存。備份包含帳戶、交易、分類、帳本圖案、顏色與所有設定。</p><button class="my-sheet-action" data-my-action="cloud-backup-now">立即備份</button><div class="my-cloud-backup-list">${rows}</div>`);
@@ -108,7 +112,7 @@
     if(action==='close-cloud')return closeMySheet();
     if(action==='cloud-create')return run(()=>window.cloudSync.start(store.snapshot().settings.pairCode,{mode:'create'}),()=>{closeMySheet();showToast('共享帳本已啟用');});
     if(action==='cloud-join'){const code=document.getElementById('myJoinCode')?.value.replace(/\D/g,'');if(!/^\d{6}$/.test(code))return showToast('請輸入六碼配對代碼');return run(()=>window.cloudSync.start(code,{mode:'join'}),()=>{closeMySheet();showToast('已加入共享帳本');});}
-    if(action==='cloud-backup-now')return run(()=>window.cloudSync.createBackup('manual'),()=>{showToast('雲端備份已建立');setTimeout(openCloudBackupsSheet,300);});
+    if(action==='cloud-backup-now')return run(()=>window.cloudSync.createBackup('manual'),id=>{showToast('雲端備份已建立');setTimeout(()=>openCloudBackupsSheet(id),300);});
     if(action==='cloud-restore-backup'){const id=target.dataset.backupId;return showConfirmAlert('先保存目前資料，再還原這份雲端備份？',()=>run(()=>window.cloudSync.restoreBackup(id),()=>{closeMySheet();showToast('雲端備份已還原');}));}
     if(action==='join-book')return openCloudSheet();
     if(id==='myClear')return showConfirmAlert('清除全部帳戶、交易與設定？此動作無法復原，會先保存一份雲端備份。',()=>run(async()=>{if(window.cloudSync?.activeCode)await window.cloudSync.createBackup('before-clear');await store.clear();},()=>{closeMySheet();showToast('所有資料已清除');}));
