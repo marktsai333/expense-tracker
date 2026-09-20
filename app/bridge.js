@@ -42,6 +42,7 @@
     const modeLabel=document.getElementById('myOverviewModeValue');if(modeLabel)modeLabel.textContent=net?'淨資產模式':'信用卡模式';
     document.getElementById('ovDateBig').textContent=`${now.getMonth()+1}月${now.getDate()}日(${'日一二三四五六'[now.getDay()]})`;
     renderCloudStatus(window.cloudSync?.view());
+    renderGoogleSheetStatus(window.googleSheetSync?.view());
     const excluded=state.categories.filter(c=>c.exclude).map(c=>c.name).join('、');
     let note=document.getElementById('chartExclusions');if(!note){note=document.createElement('p');note.id='chartExclusions';note.className='my-sheet-note';document.getElementById('donutArea').after(note);}note.textContent=excluded?'消費結構已排除：'+excluded:'';
     document.getElementById('phoneBuildVersion')?.replaceChildren(document.createTextNode('本機帳本 v1 · 手機版面 v10'));
@@ -68,7 +69,29 @@
   excelInput.onchange=async()=>{const file=excelInput.files?.[0];excelInput.value='';if(!file)return;if(file.size>20e6)return showToast('檔案超過 20 MB');try{const buffer=await file.arrayBuffer(),preview=utils.convertXLSX(buffer),hint=preview.warnings.length?`\n另有 ${preview.warnings.length} 項資料提示。`:'';showConfirmAlert(`將用 Excel 的 ${preview.importedCount} 筆交易取代目前全部帳戶與交易？${hint}\n會先保存目前的雲端資料。`,()=>run(async()=>{if(window.cloudSync?.activeCode)await window.cloudSync.createBackup('before-excel-import');await utils.importXLSX(store,buffer);},()=>showToast(`Excel 已匯入 ${preview.importedCount} 筆`)));}catch(error){showToast(error.message||'無法讀取這份 Excel');}};
   const cloudCodeLabel=code=>String(code||'').replace(/^(\d{3})(\d{3})$/,'$1 $2');
   const htmlEscape=value=>String(value).replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
-  const backupReasonLabel={daily:'每日備份','before-clear':'清除前備份','before-restore':'還原前備份','before-csv-import':'匯入 CSV 前備份','before-excel-import':'匯入 Excel 前備份',manual:'手動備份'};
+  const DEFAULT_GOOGLE_SHEET_URL='https://docs.google.com/spreadsheets/d/1Va4Gmzj7rEyLONFqL5rmZOwtbbzfp0ncniKf7L6p2SY/edit';
+  const googleSheetStatusLabel={disabled:'未設定',idle:'自動同步',checking:'同步中',unchanged:'已是最新',synced:'已同步',offline:'離線',error:'同步失敗'};
+  const renderGoogleSheetStatus=view=>{
+    const state=view||window.googleSheetSync?.view()||{status:'disabled',message:'尚未設定 Google 試算表',settings:{enabled:false}};
+    const label=state.settings?.enabled?(googleSheetStatusLabel[state.status]||'自動同步'):(state.settings?.url?'已關閉':'未設定');
+    const row=document.getElementById('myGoogleSheetSyncValue');if(row)row.textContent=label;
+    const title=document.getElementById('sheetSyncStatusTitle');if(title)title.textContent=label;
+    const message=document.getElementById('sheetSyncStatusMessage');if(message)message.textContent=state.message||'尚未設定 Google 試算表';
+  };
+  const googleSheetTime=value=>{if(!value)return'尚未完成同步';const date=new Date(value);return Number.isNaN(date.getTime())?'尚未完成同步':`上次同步：${date.toLocaleString('zh-TW',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}`;};
+  const openGoogleSheetSyncSheet=()=>{
+    const view=window.googleSheetSync?.view()||{status:'disabled',message:'同步功能尚未載入',settings:{}};
+    const settings=view.settings||{},enabled=settings.url?Boolean(settings.enabled):true,url=settings.url||DEFAULT_GOOGLE_SHEET_URL;
+    window.openMySheet?.('Google 試算表同步',`<p class="my-sheet-note">App 開啟、回到前景或恢復網路時會檢查更新，開啟期間每 5 分鐘再檢查一次。iPhone 完全關閉 App 時無法在背景讀取試算表。</p><label class="my-editor-label" for="googleSheetUrl">Google 試算表網址</label><input class="field-input" id="googleSheetUrl" type="url" inputmode="url" autocapitalize="none" autocomplete="off" value="${htmlEscape(url)}" /><div class="switch-row"><span class="switch-hint">自動檢查試算表更新</span><button type="button" class="ios-switch ${enabled?'on':''}" id="googleSheetEnabled" role="switch" aria-checked="${enabled}" data-my-action="sheet-toggle"><span class="ios-switch-knob"></span></button></div>${settings.hasImported?'':`<div class="sheet-sync-warning">第一次同步會先建立雲端備份，再用試算表內容取代目前帳戶與交易。之後同步只更新試算表來源的交易，App 內手動新增的交易會保留。</div>`}<div class="sheet-sync-status"><strong id="sheetSyncStatusTitle">${htmlEscape(googleSheetStatusLabel[view.status]||'未設定')}</strong><span id="sheetSyncStatusMessage">${htmlEscape(view.message||googleSheetTime(settings.lastSyncedAt))}</span><span>${htmlEscape(googleSheetTime(settings.lastSyncedAt))}${settings.lastImportedCount?` · ${settings.lastImportedCount} 筆`:''}</span></div><div class="my-sheet-actions"><button class="my-sheet-action" data-my-action="sheet-save">儲存並立即同步</button>${enabled?'<button class="my-sheet-action secondary" data-my-action="sheet-check">立即檢查更新</button>':''}</div><p class="my-sheet-note" style="margin-top:14px">試算表必須開放「知道連結的任何人可查看」，App 才能下載內容。</p>`);
+  };
+  const runGoogleSheetConfigure=(url,enabled)=>run(()=>window.googleSheetSync.configure(url,enabled),result=>{closeMySheet();showToast(enabled?(result.changed?`已同步 ${result.importedCount} 筆試算表交易`:'試算表已是最新'):'試算表自動同步已關閉');});
+  const confirmGoogleSheetFirstImport=(url,enabled)=>{
+    if(!enabled)return runGoogleSheetConfigure(url,false);
+    const settings=window.googleSheetSync.view().settings,match=/\/spreadsheets\/d\/([^/]+)/.exec(url),changedSource=match?.[1]!==settings.spreadsheetId;
+    if(settings.hasImported&&!changedSource)return runGoogleSheetConfigure(url,true);
+    showConfirmAlert('第一次同步會先備份目前帳本，再用 Google 試算表的帳戶與交易取代目前資料。要開始同步嗎？',()=>runGoogleSheetConfigure(url,true),'開始同步');
+  };
+  const backupReasonLabel={daily:'每日備份','before-clear':'清除前備份','before-restore':'還原前備份','before-csv-import':'匯入 CSV 前備份','before-excel-import':'匯入 Excel 前備份','before-sheet-sync':'試算表同步前備份',manual:'手動備份'};
   const formatBackupDate=value=>{const date=value?.toDate?value.toDate():new Date(value||0);return Number.isNaN(date.getTime())?'剛剛':date.toLocaleString('zh-TW',{year:'numeric',month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});};
   const openCloudSheet=()=>{
     const state=window.cloudSync?.view()||{status:'disabled'};
@@ -104,16 +127,20 @@
     const target=event.target.closest('button,[data-phone-overview-mode],[data-my-action]');if(!target)return;
     const id=target.id,action=target.dataset.myAction,mode=target.dataset.phoneOverviewMode;
     const intercept=()=>{event.preventDefault();event.stopImmediatePropagation();};
-    if(['saveAccountBtn','saveEditAccountBtn','confirmPayBtn','editPrimaryToggle','myBackup','myExportCsv','myClear','myJoinBook','myCloudBackups','syncBtn','ovSyncBtn'].includes(id)||mode||['save-name','join-book','set-appearance','toggle-chart','add-category','select-icon','select-color','add-custom-color','delete-category','toggle-tip','add-custom-tip','cloud-create','cloud-join','cloud-backup-now','cloud-restore-backup','close-cloud'].includes(action))intercept();else return;
+    if(['saveAccountBtn','saveEditAccountBtn','confirmPayBtn','editPrimaryToggle','myBackup','myExportCsv','myClear','myJoinBook','myCloudBackups','myGoogleSheetSync','syncBtn','ovSyncBtn'].includes(id)||mode||['save-name','join-book','set-appearance','toggle-chart','add-category','select-icon','select-color','add-custom-color','delete-category','toggle-tip','add-custom-tip','cloud-create','cloud-join','cloud-backup-now','cloud-restore-backup','close-cloud','sheet-toggle','sheet-save','sheet-check'].includes(action))intercept();else return;
     if(id==='myBackup')return exportBackup();if(id==='myExportCsv')return exportCsv();
     if(id==='myJoinBook')return openCloudSheet();
     if(id==='myCloudBackups')return openCloudBackupsSheet();
+    if(id==='myGoogleSheetSync')return openGoogleSheetSyncSheet();
     if(id==='syncBtn'||id==='ovSyncBtn'){if(window.cloudSync?.activeCode)return window.cloudSync.syncNow();return openCloudSheet();}
     if(action==='close-cloud')return closeMySheet();
     if(action==='cloud-create')return run(()=>window.cloudSync.start(store.snapshot().settings.pairCode,{mode:'create'}),()=>{closeMySheet();showToast('共享帳本已啟用');});
     if(action==='cloud-join'){const code=document.getElementById('myJoinCode')?.value.replace(/\D/g,'');if(!/^\d{6}$/.test(code))return showToast('請輸入六碼配對代碼');return run(()=>window.cloudSync.start(code,{mode:'join'}),()=>{closeMySheet();showToast('已加入共享帳本');});}
     if(action==='cloud-backup-now')return run(()=>window.cloudSync.createBackup('manual'),id=>{showToast('雲端備份已建立');setTimeout(()=>openCloudBackupsSheet(id),300);});
     if(action==='cloud-restore-backup'){const id=target.dataset.backupId;return showConfirmAlert('先保存目前資料，再還原這份雲端備份？',()=>run(()=>window.cloudSync.restoreBackup(id),()=>{closeMySheet();showToast('雲端備份已還原');}));}
+    if(action==='sheet-toggle'){const enabled=target.getAttribute('aria-checked')!=='true';target.setAttribute('aria-checked',String(enabled));target.classList.toggle('on',enabled);return;}
+    if(action==='sheet-save'){const url=document.getElementById('googleSheetUrl')?.value.trim(),enabled=document.getElementById('googleSheetEnabled')?.getAttribute('aria-checked')==='true';if(!url)return showToast('請貼上 Google 試算表網址');return confirmGoogleSheetFirstImport(url,enabled);}
+    if(action==='sheet-check'){const settings=window.googleSheetSync.view().settings;if(!settings.hasImported)return confirmGoogleSheetFirstImport(settings.url,true);return run(()=>window.googleSheetSync.check(),result=>{closeMySheet();showToast(result.changed?`已同步 ${result.importedCount} 筆試算表交易`:'試算表沒有新變更');});}
     if(action==='join-book')return openCloudSheet();
     if(id==='myClear')return showConfirmAlert('清除全部帳戶、交易與設定？此動作無法復原，會先保存一份雲端備份。',()=>run(async()=>{if(window.cloudSync?.activeCode)await window.cloudSync.createBackup('before-clear');await store.clear();},()=>{closeMySheet();showToast('所有資料已清除');}));
     if(id==='saveAccountBtn'){
@@ -145,5 +172,6 @@
   document.getElementById('myRestoreInput').addEventListener('change',async event=>{event.stopImmediatePropagation();const file=event.target.files?.[0];event.target.value='';if(!file)return;if(file.size>20e6)return showToast('檔案超過 20 MB');const text=await file.text();try{const parsed=JSON.parse(text);if(parsed.format!=='expense-tracker')throw Error();}catch{return showToast('無法讀取這份正式版備份');}showConfirmAlert('以此備份取代目前全部帳戶、交易與設定？會先保存目前的雲端資料。',()=>run(async()=>{if(window.cloudSync?.activeCode)await window.cloudSync.createBackup('before-restore');const code=window.cloudSync?.activeCode;await store.restore(text);if(code)await store.saveSettings({...store.settingsView(),pairCode:code,cloudEnabled:true});},()=>{closeMySheet();showToast('備份已還原');}));},true);
   store.subscribe(window.refreshLedgerUI);
   window.cloudSync?.subscribe(renderCloudStatus);
+  window.googleSheetSync?.subscribe(renderGoogleSheetStatus);
   window.refreshLedgerUI();
 })();

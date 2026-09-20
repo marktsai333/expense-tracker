@@ -800,8 +800,9 @@
     confirmOnConfirm = null;
     if (cb) cb();
   });
-  function showConfirmAlert(title, onConfirm) {
+  function showConfirmAlert(title, onConfirm, confirmLabel = '刪除') {
     document.getElementById('confirmTitle').textContent = title;
+    document.getElementById('confirmDeleteBtn').textContent = confirmLabel;
     confirmOnConfirm = onConfirm;
     confirmBackdrop.classList.add('open');
   }
