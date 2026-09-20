@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="zh-Hant" data-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Google 試算表同步 Demo</title>
+  <style>
+    :root{
+      --bg:#eef1f2; --card:#ffffff; --text:#1c2226; --muted:#7a8790;
+      --border:rgba(20,30,35,0.08);
+      --accent:#1a9b9e; --accent2:#f5a623;
+      --accent-soft:rgba(26,155,158,0.1); --accent2-soft:rgba(245,166,35,0.14);
+      --danger:#e0483f; --danger-soft:rgba(224,72,63,0.1);
+      --success:#22a854; --success-soft:rgba(34,168,84,0.1);
+    }
+    [data-theme="dark"]{
+      --bg:#12181a; --card:#1a2224; --text:#ffffff; --muted:#8a97a0;
+      --border:#283336;
+      --accent:#2bc4c8; --accent2:#ffb84d;
+      --accent-soft:rgba(43,196,200,0.16); --accent2-soft:rgba(255,184,77,0.16);
+      --danger:#ff5c52; --danger-soft:rgba(255,92,82,0.16);
+      --success:#34d399; --success-soft:rgba(52,211,153,0.16);
+    }
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+    body{position:fixed;inset:0;overflow:hidden}
+    button,input{font:inherit}
+    button{color:inherit}
+    .phone{position:fixed;inset:0;overflow:auto;padding:calc(env(safe-area-inset-top) + 18px) 16px calc(env(safe-area-inset-bottom) + 105px);background:var(--bg)}
+    .header{display:flex;align-items:center;justify-content:space-between;height:44px;margin-bottom:14px}
+    .header h1{margin:0;font-size:18px;line-height:1.1;letter-spacing:-.015em}
+    .theme{border:0;border-radius:12px;background:var(--card);padding:9px 12px;color:var(--muted);font-weight:650}
+    .book{display:flex;align-items:center;gap:12px;border-radius:17px;background:var(--accent-soft);padding:15px 14px;margin-bottom:20px}
+    .book-icon{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:var(--accent);color:#fff}
+    .book-icon svg,.row-icon svg,.status-icon svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+    .book small,.row-value,.note,.status-copy small{display:block;color:var(--muted);font-size:12px}
+    .book strong{display:block;margin-top:1px;font-size:16px}
+    .group-title{margin:0 4px 6px;color:var(--muted);font-size:11px;font-weight:650}
+    .list{overflow:hidden;border-radius:14px;background:var(--card)}
+    .row{width:100%;min-height:56px;display:flex;align-items:center;gap:10px;border:0;border-bottom:1px solid var(--border);background:transparent;padding:9px 11px;text-align:left;cursor:pointer}
+    .row:last-child{border-bottom:0}.row:active{background:var(--accent-soft)}
+    .row-icon{width:29px;height:29px;border-radius:9px;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent);flex:none}
+    .row-label{flex:1;font-weight:650}.row-value{max-width:105px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.chevron{color:var(--muted);font-size:20px;font-weight:300}
+    .tabbar{position:fixed;left:18px;right:18px;bottom:calc(env(safe-area-inset-bottom) + 10px);height:70px;border:1px solid rgba(255,255,255,.65);border-radius:35px;background:color-mix(in srgb,var(--card) 82%,transparent);box-shadow:0 16px 38px rgba(24,34,36,.16);backdrop-filter:blur(22px) saturate(160%);display:grid;grid-template-columns:repeat(5,1fr);padding:8px}
+    .tab{display:grid;place-items:center;border-radius:27px;color:var(--muted);font-size:11px;font-weight:650}.tab.active{background:var(--accent-soft);color:var(--accent)}
+    .backdrop{position:fixed;inset:0;background:rgba(7,12,14,.38);opacity:0;pointer-events:none;transition:opacity .22s ease;z-index:20}
+    .backdrop.open{opacity:1;pointer-events:auto}
+    .sheet{position:fixed;z-index:21;left:0;right:0;bottom:0;max-height:88vh;overflow:auto;border-radius:28px 28px 0 0;background:var(--card);padding:10px 20px calc(env(safe-area-inset-bottom) + 20px);box-shadow:0 -20px 60px rgba(0,0,0,.2);transform:translateY(104%);transition:transform .32s cubic-bezier(.2,.8,.2,1)}
+    .sheet.open{transform:translateY(0)}
+    .grabber{width:38px;height:5px;border-radius:3px;background:var(--border);margin:0 auto 12px}
+    .sheet-head{display:grid;grid-template-columns:38px 1fr 38px;align-items:center;margin-bottom:12px}.sheet-head h2{margin:0;text-align:center;font-size:17px;letter-spacing:-.01em}.close{width:38px;height:38px;border:0;border-radius:19px;background:var(--bg);font-size:21px;color:var(--muted)}
+    .note{margin:0 0 14px;line-height:1.55}
+    .field-label{display:block;margin:15px 0 6px;color:var(--muted);font-size:12px;font-weight:650}
+    .field{width:100%;border:1px solid var(--border);border-radius:13px;background:var(--bg);color:var(--text);padding:13px;outline:none}.field:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+    .switch-row{display:flex;align-items:center;gap:12px;margin-top:12px;border-radius:14px;background:var(--bg);padding:12px 13px}.switch-copy{flex:1}.switch-copy strong{display:block}.switch-copy small{color:var(--muted)}
+    .switch{width:51px;height:31px;border:0;border-radius:16px;background:#aeb7bc;padding:2px;transition:background .18s}.switch span{display:block;width:27px;height:27px;border-radius:50%;background:#fff;box-shadow:0 2px 5px rgba(0,0,0,.22);transform:translateX(0);transition:transform .22s cubic-bezier(.2,.8,.2,1)}.switch.on{background:var(--accent)}.switch.on span{transform:translateX(20px)}
+    .warning{margin-top:14px;border-radius:14px;background:var(--accent2-soft);padding:12px 13px;color:var(--text);font-size:12px;line-height:1.5}.warning strong{color:var(--accent2)}
+    .status{display:flex;align-items:center;gap:11px;margin-top:14px;border:1px solid var(--border);border-radius:14px;padding:12px}.status-icon{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent)}.status-copy{flex:1}.status-copy strong{display:block}.status.success .status-icon{background:var(--success-soft);color:var(--success)}
+    .primary{width:100%;min-height:52px;margin-top:16px;border:0;border-radius:16px;background:var(--accent);color:#fff;font-weight:750}.primary:active{transform:scale(.985)}.primary[disabled]{opacity:.65}
+    .secondary{width:100%;min-height:48px;margin-top:9px;border:0;border-radius:15px;background:var(--accent-soft);color:var(--accent);font-weight:700}
+    .spinner{width:19px;height:19px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;display:inline-block;vertical-align:-4px;margin-right:8px;animation:spin .75s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
+    .confirm{position:fixed;z-index:30;left:50%;top:50%;width:min(310px,calc(100% - 44px));transform:translate(-50%,-46%) scale(.96);border-radius:19px;background:var(--card);padding:18px;box-shadow:0 24px 75px rgba(0,0,0,.3);opacity:0;pointer-events:none;transition:.2s ease}.confirm.open{opacity:1;pointer-events:auto;transform:translate(-50%,-50%) scale(1)}.confirm h3{margin:0 0 8px;font-size:17px}.confirm p{margin:0;color:var(--muted);line-height:1.55}.confirm-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:16px}.confirm-actions button{height:44px;border:0;border-radius:12px;font-weight:700}.cancel{background:var(--bg)}.confirm-go{background:var(--accent);color:#fff}
+    @media(prefers-reduced-motion:reduce){.sheet,.backdrop,.confirm,.switch span{transition:none}.spinner{animation:none}}
+    @media(prefers-reduced-transparency:reduce){.tabbar{background:var(--card);backdrop-filter:none}}
+  </style>
+</head>
+<body>
+  <main class="phone">
+    <header class="header"><span></span><h1>我的</h1><button class="theme" id="themeBtn" type="button">深色</button></header>
+    <section class="book"><span class="book-icon"><svg viewBox="0 0 24 24"><path d="M5 4.5A3.5 3.5 0 0 1 8.5 3H20v16H8.5A3.5 3.5 0 0 0 5 22V4.5Zm0 0V19.5M9 7h7M9 11h7"/></svg></span><span><small>目前帳本</small><strong>我的帳本</strong></span></section>
+    <h2 class="group-title">資料</h2>
+    <section class="list">
+      <button class="row" id="sheetSyncRow" type="button"><span class="row-icon"><svg viewBox="0 0 24 24"><path d="M4 5h16v14H4zM4 10h16M9 5v14M14 5v14"/></svg></span><span class="row-label">Google 試算表同步</span><span class="row-value" id="rowStatus">未設定</span><span class="chevron">›</span></button>
+      <button class="row" type="button"><span class="row-icon"><svg viewBox="0 0 24 24"><path d="M12 3v11m0 0 4-4m-4 4-4-4M5 16v3h14v-3"/></svg></span><span class="row-label">完整備份</span><span class="chevron">›</span></button>
+      <button class="row" type="button"><span class="row-icon"><svg viewBox="0 0 24 24"><path d="M12 21V10m0 0 4 4m-4-4-4 4M5 8V5h14v3"/></svg></span><span class="row-label">匯入 Excel</span><span class="chevron">›</span></button>
+    </section>
+  </main>
+  <nav class="tabbar" aria-label="主要分頁"><span class="tab">總覽</span><span class="tab">帳戶</span><span class="tab">分析</span><span class="tab">明細</span><span class="tab active">我的</span></nav>
+
+  <div class="backdrop" id="backdrop"></div>
+  <section class="sheet" id="sheet" aria-label="Google 試算表同步設定">
+    <div class="grabber"></div>
+    <header class="sheet-head"><button class="close" id="closeBtn" type="button">×</button><h2>Google 試算表同步</h2><span></span></header>
+    <p class="note">App 開啟、回到前景及每 5 分鐘會檢查一次。App 完全關閉時不會在背景執行。</p>
+    <label class="field-label" for="sheetUrl">Google 試算表網址</label>
+    <input class="field" id="sheetUrl" value="https://docs.google.com/spreadsheets/d/1Va4Gmzj7rEyLONFqL5rmZOwtbbzfp0ncniKf7L6p2SY/edit" />
+    <div class="switch-row"><span class="switch-copy"><strong>自動同步</strong><small>只有內容改變時才匯入</small></span><button class="switch on" id="autoSwitch" type="button" role="switch" aria-checked="true"><span></span></button></div>
+    <div class="warning"><strong>第一次同步</strong><br />會以試算表取代目前帳戶與交易，並先建立完整雲端備份。之後只更新試算表來源的交易，App 新增的交易會保留。</div>
+    <div class="status" id="statusCard"><span class="status-icon"><svg viewBox="0 0 24 24"><path d="M7.5 18.5h10a3.5 3.5 0 0 0 .6-6.95A6.25 6.25 0 0 0 6.1 10.2 4.2 4.2 0 0 0 7.5 18.5Z"/></svg></span><span class="status-copy"><strong id="statusTitle">尚未同步</strong><small id="statusText">設定後會先檢查表格格式</small></span></div>
+    <button class="primary" id="saveBtn" type="button">儲存並立即同步</button>
+    <button class="secondary" id="checkBtn" type="button" hidden>立即檢查</button>
+  </section>
+  <section class="confirm" id="confirm" role="alertdialog" aria-modal="true"><h3>開始第一次同步？</h3><p>目前帳戶與交易會先完整備份，再由試算表的 40 筆交易取代。</p><div class="confirm-actions"><button class="cancel" id="cancelConfirm" type="button">取消</button><button class="confirm-go" id="confirmGo" type="button">開始同步</button></div></section>
+  <script>
+    const sheet=document.getElementById('sheet'),backdrop=document.getElementById('backdrop'),confirmBox=document.getElementById('confirm');
+    const open=()=>{sheet.classList.add('open');backdrop.classList.add('open')};
+    const close=()=>{sheet.classList.remove('open');backdrop.classList.remove('open');confirmBox.classList.remove('open')};
+    sheetSyncRow.onclick=open;closeBtn.onclick=close;backdrop.onclick=close;
+    themeBtn.onclick=()=>{const dark=document.documentElement.dataset.theme!=='dark';document.documentElement.dataset.theme=dark?'dark':'light';themeBtn.textContent=dark?'淺色':'深色'};
+    autoSwitch.onclick=()=>{const on=autoSwitch.classList.toggle('on');autoSwitch.setAttribute('aria-checked',String(on));saveBtn.textContent=on?'儲存並立即同步':'儲存設定'};
+    saveBtn.onclick=()=>confirmBox.classList.add('open');cancelConfirm.onclick=()=>confirmBox.classList.remove('open');
+    confirmGo.onclick=()=>{confirmBox.classList.remove('open');saveBtn.disabled=true;saveBtn.innerHTML='<span class="spinner"></span>正在檢查試算表';statusTitle.textContent='正在同步…';statusText.textContent='下載並驗證 Google 試算表';setTimeout(()=>{saveBtn.disabled=false;saveBtn.textContent='已儲存';statusCard.classList.add('success');statusTitle.textContent='已同步 40 筆交易';statusText.textContent='剛剛 · 3 個帳戶 · 21 個細項';rowStatus.textContent='自動同步';checkBtn.hidden=false;saveBtn.hidden=true;},650)};
+    checkBtn.onclick=()=>{statusTitle.textContent='試算表沒有新變更';statusText.textContent='剛剛檢查完成'};
+    document.documentElement.dataset.demoReady='true';
+  </script>
+</body>
+</html>
